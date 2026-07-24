@@ -213,7 +213,7 @@ export function useTransactions(monthYear: MonthYear, search = '', typeFilter: s
     const { data, error: err } = await supabase.from('transactions').insert(payloads).select()
     if (err) {
       console.error('Supabase insert failed:', err)
-      return []
+      throw err
     }
     await fetchTransactions()
     return data
@@ -223,7 +223,7 @@ export function useTransactions(monthYear: MonthYear, search = '', typeFilter: s
     const { error: err } = await supabase.from('transactions').delete().eq('id', id)
     if (err) {
       console.error('Supabase delete failed:', err)
-      return
+      throw err
     }
     setTransactions((prev) => prev.filter((t) => t.id !== id))
   }
@@ -238,7 +238,7 @@ export function useTransactions(monthYear: MonthYear, search = '', typeFilter: s
     const { error: err } = await supabase.from('transactions').update(dbPayload).eq('id', id)
     if (err) {
       console.error('Supabase update failed:', err)
-      return
+      throw err
     }
     await fetchTransactions()
   }

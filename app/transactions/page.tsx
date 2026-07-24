@@ -60,8 +60,8 @@ function TransactionsContent() {
         showToast('Transação adicionada com sucesso!', 'success')
       }
       setEditingTx(null)
-    } catch {
-      showToast('Erro ao salvar transação.', 'error')
+    } catch (err: any) {
+      showToast(`Erro ao salvar transação: ${err.message || 'Erro desconhecido'}`, 'error')
     }
   }
 
@@ -70,8 +70,8 @@ function TransactionsContent() {
       await deleteTransaction(id)
       showToast('Transação excluída com sucesso!', 'success')
       setEditingTx(null)
-    } catch {
-      showToast('Erro ao excluir transação.', 'error')
+    } catch (err: any) {
+      showToast(`Erro ao excluir transação: ${err.message || 'Erro desconhecido'}`, 'error')
     }
   }
 
