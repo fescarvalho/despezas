@@ -47,7 +47,7 @@ export function TransactionModal({
   const [categoryId, setCategoryId] = useState('')
   const [sourceId, setSourceId] = useState('')
   const [isInstallment, setIsInstallment] = useState(false)
-  const [installmentTotal, setInstallmentTotal] = useState(2)
+  const [installmentTotal, setInstallmentTotal] = useState<number | ''>(2)
   const [frequency, setFrequency] = useState('mensal')
   const [isValuePerInstallment, setIsValuePerInstallment] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -89,13 +89,15 @@ export function TransactionModal({
 
   // Calculate values based on toggle
   const installmentValue = useMemo(() => {
-    if (parsedAmount <= 0 || installmentTotal <= 0) return 0
-    return isValuePerInstallment ? parsedAmount : parsedAmount / installmentTotal
+    const total = typeof installmentTotal === 'number' ? installmentTotal : 1
+    if (parsedAmount <= 0 || total <= 0) return 0
+    return isValuePerInstallment ? parsedAmount : parsedAmount / total
   }, [parsedAmount, installmentTotal, isValuePerInstallment])
 
   const totalValue = useMemo(() => {
-    if (parsedAmount <= 0 || installmentTotal <= 0) return 0
-    return isValuePerInstallment ? parsedAmount * installmentTotal : parsedAmount
+    const total = typeof installmentTotal === 'number' ? installmentTotal : 1
+    if (parsedAmount <= 0 || total <= 0) return 0
+    return isValuePerInstallment ? parsedAmount * total : parsedAmount
   }, [parsedAmount, installmentTotal, isValuePerInstallment])
 
   const filteredCats = categories.filter((c) => c.type === type)
@@ -114,7 +116,7 @@ export function TransactionModal({
         account_id: sourceId.startsWith('acc:') ? sourceId.replace('acc:', '') : null,
         card_id: sourceId.startsWith('card:') ? sourceId.replace('card:', '') : null,
         is_installment: isInstallment,
-        installment_total: isInstallment ? installmentTotal : undefined,
+        installment_total: isInstallment ? (typeof installmentTotal === 'number' ? installmentTotal : 1) : undefined,
         frequency: isInstallment ? frequency : undefined,
         is_value_per_installment: isInstallment ? isValuePerInstallment : undefined,
       })
@@ -201,7 +203,7 @@ export function TransactionModal({
           }}>
             <div>
               <div style={{ fontSize: 13, color: 'var(--color-accent)', fontWeight: 700 }}>
-                📅 {installmentTotal === 1 ? 'Recorrente' : `${installmentTotal}× de ${formatCurrency(installmentValue)}`}
+                📅 {installmentTotal === 1 ? 'Recorrente' : `${installmentTotal || 1}× de ${formatCurrency(installmentValue)}`}
               </div>
               <div style={{ fontSize: 12, color: 'var(--color-text-muted)', marginTop: 2 }}>
                 {installmentTotal === 1 ? 'Lançamento infinito' : `Total: ${formatCurrency(totalValue)}`}
@@ -394,7 +396,11 @@ export function TransactionModal({
                       min={1}
                       max={60}
                       value={installmentTotal}
-                      onChange={(e) => setInstallmentTotal(Math.max(1, parseInt(e.target.value) || 1))}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val === '') setInstallmentTotal('');
+                        else setInstallmentTotal(parseInt(val, 10));
+                      }}
                     />
                   </div>
                   <div className="form-group" style={{ marginBottom: 0 }}>
