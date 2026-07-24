@@ -6,6 +6,8 @@ import type { Category } from '@/types'
 
 
 
+let isSeeding = false
+
 export function useCategories() {
   const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
@@ -17,7 +19,28 @@ export function useCategories() {
     try {
       const { data, error: err } = await supabase.from('categories').select('*').order('name')
       let dataToSet = data || []
-      if (dataToSet.length === 0) {
+
+      // Deduplicate on the fly
+      const seenNames = new Set<string>()
+      const duplicates: string[] = []
+      const uniqueCats: Category[] = []
+      
+      for (const cat of dataToSet) {
+        if (seenNames.has(cat.name)) {
+          duplicates.push(cat.id)
+        } else {
+          seenNames.add(cat.name)
+          uniqueCats.push(cat)
+        }
+      }
+      
+      if (duplicates.length > 0) {
+        await supabase.from('categories').delete().in('id', duplicates)
+        dataToSet = uniqueCats
+      }
+
+      if (dataToSet.length === 0 && !isSeeding) {
+        isSeeding = true
         const defaultCats = [
           { id: crypto.randomUUID(), name: 'Alimentação', icon: '🍔', type: 'expense', color: '#F59E0B' },
           { id: crypto.randomUUID(), name: 'Transporte', icon: '🚗', type: 'expense', color: '#3B82F6' },
@@ -35,6 +58,7 @@ export function useCategories() {
         if (!insertErr && insertedData) {
           dataToSet = insertedData
         }
+        isSeeding = false
       }
       setCategories(dataToSet)
     } catch (e) {
