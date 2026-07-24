@@ -84,7 +84,11 @@ export async function fetchPluggyTransactions(accountId: string) {
     });
 
     const data = await response.json();
-    return data.results; // Retorna a lista de compras/pix
+    if (!response.ok || data.errorId) {
+      console.warn('Pluggy API Error on transactions:', data);
+      return [];
+    }
+    return data.results || []; // Retorna a lista de compras/pix
   } catch (error) {
     console.error('Erro ao buscar transações:', error);
     return [];
@@ -110,7 +114,7 @@ export async function fetchPluggyAccounts(itemId: string) {
       console.warn('Pluggy API Error:', data);
       throw new Error(data.message || 'Erro ao buscar contas');
     }
-    return data.results; 
+    return data.results || []; 
   } catch (error: any) {
     console.error('Erro ao buscar contas:', error);
     throw error;
