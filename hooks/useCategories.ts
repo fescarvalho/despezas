@@ -16,8 +16,23 @@ export function useCategories() {
     setError(null)
     try {
       const { data, error: err } = await supabase.from('categories').select('*').order('name')
-      if (err) throw err
-      setCategories(data || [])
+      let dataToSet = data || []
+      if (dataToSet.length === 0) {
+        const defaultCats = [
+          { name: 'Alimentação', icon: '🍔', type: 'expense', color: '#F59E0B' },
+          { name: 'Transporte', icon: '🚗', type: 'expense', color: '#3B82F6' },
+          { name: 'Moradia', icon: '🏠', type: 'expense', color: '#8B5CF6' },
+          { name: 'Lazer', icon: '🎉', type: 'expense', color: '#EC4899' },
+          { name: 'Saúde', icon: '🏥', type: 'expense', color: '#10B981' },
+          { name: 'Salário', icon: '💰', type: 'income', color: '#10B981' },
+          { name: 'Rendimentos', icon: '📈', type: 'income', color: '#3B82F6' },
+        ]
+        const { data: insertedData, error: insertErr } = await supabase.from('categories').insert(defaultCats).select()
+        if (!insertErr && insertedData) {
+          dataToSet = insertedData
+        }
+      }
+      setCategories(dataToSet)
     } catch (e) {
       console.error('Error fetching categories:', e)
       setCategories([])
