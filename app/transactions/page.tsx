@@ -124,24 +124,60 @@ function TransactionsContent() {
         </div>
 
         {/* Source Filters */}
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 12 }}>
-          {accounts.map(acc => (
-            <FilterChips
-              key={`acc:${acc.id}`}
-              options={[{ id: `acc:${acc.id}`, label: `🏦 ${acc.name}` }]}
-              selected={sourceFilter}
-              onChange={toggleSource}
-            />
-          ))}
-          {cards.map(card => (
-            <FilterChips
-              key={`card:${card.id}`}
-              options={[{ id: `card:${card.id}`, label: `💳 ${card.name}` }]}
-              selected={sourceFilter}
-              onChange={toggleSource}
-            />
-          ))}
-        </div>
+        {(accounts.length > 0 || cards.length > 0) && (
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 12 }}>
+            {accounts.map(acc => {
+              const id = `acc:${acc.id}`
+              const isActive = sourceFilter.includes(id)
+              return (
+                <button
+                  key={id}
+                  onClick={() => toggleSource(id)}
+                  className={`filter-chip ${isActive ? 'active' : ''}`}
+                  style={{
+                    padding: '6px 12px',
+                    borderRadius: 'var(--radius-full)',
+                    border: '1px solid',
+                    borderColor: isActive ? 'var(--color-primary)' : 'var(--color-border)',
+                    background: isActive ? 'var(--color-primary-light)' : 'var(--color-surface-1)',
+                    color: isActive ? 'var(--color-primary)' : 'var(--color-text-secondary)',
+                    fontSize: 13,
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  🏦 {acc.name}
+                </button>
+              )
+            })}
+            {cards.map(card => {
+              const id = `card:${card.id}`
+              const isActive = sourceFilter.includes(id)
+              return (
+                <button
+                  key={id}
+                  onClick={() => toggleSource(id)}
+                  className={`filter-chip ${isActive ? 'active' : ''}`}
+                  style={{
+                    padding: '6px 12px',
+                    borderRadius: 'var(--radius-full)',
+                    border: '1px solid',
+                    borderColor: isActive ? 'var(--color-primary)' : 'var(--color-border)',
+                    background: isActive ? 'var(--color-primary-light)' : 'var(--color-surface-1)',
+                    color: isActive ? 'var(--color-primary)' : 'var(--color-text-secondary)',
+                    fontSize: 13,
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  💳 {card.name}
+                </button>
+              )
+            })}
+          </div>
+        )}
       </div>
 
       <FilterChips
