@@ -6,7 +6,7 @@ import type { Transaction, MonthYear } from '@/types'
 
 
 
-export function useTransactions(monthYear: MonthYear, search = '', typeFilter: string[] = []) {
+export function useTransactions(monthYear: MonthYear, search = '', typeFilter: string[] = [], sourceFilter: string[] = []) {
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -26,6 +26,18 @@ export function useTransactions(monthYear: MonthYear, search = '', typeFilter: s
         .order('date', { ascending: false })
 
       if (search) query = query.ilike('description', `%${search}%`)
+      if (sourceFilter.length > 0) {
+        const accFilters = sourceFilter.filter(s => s.startsWith('acc:')).map(s => s.replace('acc:', ''))
+        const cardFilters = sourceFilter.filter(s => s.startsWith('card:')).map(s => s.replace('card:', ''))
+        
+        let orString = []
+        if (accFilters.length > 0) orString.push(`account_id.in.(${accFilters.join(',')})`)
+        if (cardFilters.length > 0) orString.push(`card_id.in.(${cardFilters.join(',')})`)
+        
+        if (orString.length > 0) {
+          query = query.or(orString.join(','))
+        }
+      }
       const { data, error: err } = await query
       if (err) throw err
       setTransactions(data || [])
@@ -36,7 +48,7 @@ export function useTransactions(monthYear: MonthYear, search = '', typeFilter: s
       setLoading(false)
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [monthYear.month, monthYear.year, search, typeFilter.join(',')])
+  }, [monthYear.month, monthYear.year, search, typeFilter.join(','), sourceFilter.join(',')])
 
   useEffect(() => { fetchTransactions() }, [fetchTransactions])
 
@@ -72,6 +84,7 @@ export function useTransactions(monthYear: MonthYear, search = '', typeFilter: s
           type: payload.type,
           category_id: payload.category_id,
           account_id: payload.account_id,
+          card_id: payload.card_id,
           is_installment: payload.is_installment,
           installment_total: payload.installment_total,
         })
@@ -84,6 +97,7 @@ export function useTransactions(monthYear: MonthYear, search = '', typeFilter: s
         type: payload.type,
         category_id: payload.category_id,
         account_id: payload.account_id,
+        card_id: payload.card_id,
         is_installment: false,
       })
     }

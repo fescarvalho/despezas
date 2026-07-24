@@ -23,6 +23,7 @@ export interface TransactionFormData {
   type: 'income' | 'expense'
   category_id: string
   account_id?: string | null
+  card_id?: string | null
   is_installment: boolean
   installment_total?: number
   frequency?: string
@@ -44,7 +45,7 @@ export function TransactionModal({
   const [amount, setAmount] = useState('')
   const [date, setDate] = useState('')
   const [categoryId, setCategoryId] = useState('')
-  const [accountId, setAccountId] = useState('')
+  const [sourceId, setSourceId] = useState('')
   const [isInstallment, setIsInstallment] = useState(false)
   const [installmentTotal, setInstallmentTotal] = useState(2)
   const [frequency, setFrequency] = useState('mensal')
@@ -61,7 +62,13 @@ export function TransactionModal({
         setAmount(initialData.amount.toString())
         setDate(initialData.date)
         setCategoryId(initialData.category_id)
-        setAccountId(initialData.account_id || '')
+        if (initialData.card_id) {
+          setSourceId(`card:${initialData.card_id}`)
+        } else if (initialData.account_id) {
+          setSourceId(`acc:${initialData.account_id}`)
+        } else {
+          setSourceId('')
+        }
         setIsInstallment(false) // editing only current occurrence
       } else {
         setType('expense')
@@ -69,7 +76,7 @@ export function TransactionModal({
         setAmount('')
         setDate(new Date().toISOString().split('T')[0])
         setCategoryId('')
-        setAccountId('')
+        setSourceId('')
         setIsInstallment(false)
         setInstallmentTotal(2)
         setFrequency('mensal')
@@ -104,7 +111,8 @@ export function TransactionModal({
         date,
         type,
         category_id: categoryId,
-        account_id: accountId || null,
+        account_id: sourceId.startsWith('acc:') ? sourceId.replace('acc:', '') : null,
+        card_id: sourceId.startsWith('card:') ? sourceId.replace('card:', '') : null,
         is_installment: isInstallment,
         installment_total: isInstallment ? installmentTotal : undefined,
         frequency: isInstallment ? frequency : undefined,
@@ -242,21 +250,34 @@ export function TransactionModal({
           </select>
         </div>
 
-        {accounts.length > 0 && (
+        {(accounts.length > 0 || cards.length > 0) && (
           <div className="form-group">
-            <label className="form-label" htmlFor="tx-account">Conta (opcional)</label>
+            <label className="form-label" htmlFor="tx-source">Forma de Pagamento / Conta</label>
             <select
-              id="tx-account"
+              id="tx-source"
               className="form-select"
-              value={accountId}
-              onChange={(e) => setAccountId(e.target.value)}
+              value={sourceId}
+              onChange={(e) => setSourceId(e.target.value)}
             >
-              <option value="">Sem conta vinculada</option>
-              {accounts.map((acc) => (
-                <option key={acc.id} value={acc.id}>
-                  {acc.icon} {acc.name} — {formatCurrency(acc.balance)}
-                </option>
-              ))}
+              <option value="">Nenhuma (Solta)</option>
+              {accounts.length > 0 && (
+                <optgroup label="Contas Bancárias">
+                  {accounts.map((acc) => (
+                    <option key={`acc:${acc.id}`} value={`acc:${acc.id}`}>
+                      {acc.icon} {acc.name} — {formatCurrency(acc.balance)}
+                    </option>
+                  ))}
+                </optgroup>
+              )}
+              {cards.length > 0 && (
+                <optgroup label="Cartões de Crédito">
+                  {cards.map((c) => (
+                    <option key={`card:${c.id}`} value={`card:${c.id}`}>
+                      💳 {c.name} — Limite: {formatCurrency(c.limit_amount)}
+                    </option>
+                  ))}
+                </optgroup>
+              )}
             </select>
           </div>
         )}

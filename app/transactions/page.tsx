@@ -21,17 +21,22 @@ function TransactionsContent() {
   const { monthYear, goNext, goPrev } = useMonthSelector()
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState<string[]>([])
+  const [sourceFilter, setSourceFilter] = useState<string[]>([])
   const [modalOpen, setModalOpen] = useState(false)
   const [editingTx, setEditingTx] = useState<Transaction | null>(null)
   const { showToast } = useToast()
 
-  const { transactions, loading, monthIncome, monthExpenses, createTransaction, updateTransaction, deleteTransaction } = useTransactions(monthYear, search, typeFilter)
+  const { transactions, loading, monthIncome, monthExpenses, createTransaction, updateTransaction, deleteTransaction } = useTransactions(monthYear, search, typeFilter, sourceFilter)
   const { categories } = useCategories()
   const { accounts } = useAccounts()
   const { cards } = useCreditCards()
 
   const toggleType = (type: string) => {
     setTypeFilter((prev) => prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type])
+  }
+
+  const toggleSource = (source: string) => {
+    setSourceFilter((prev) => prev.includes(source) ? prev.filter((s) => s !== source) : [...prev, source])
   }
 
   // Group by date
@@ -116,6 +121,26 @@ function TransactionsContent() {
           <div style={{ fontSize: 16, fontWeight: 800, color: (monthIncome - monthExpenses) >= 0 ? 'var(--color-income)' : 'var(--color-expense)' }}>
             {formatCurrency(monthIncome - monthExpenses)}
           </div>
+        </div>
+
+        {/* Source Filters */}
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 12 }}>
+          {accounts.map(acc => (
+            <FilterChips
+              key={`acc:${acc.id}`}
+              options={[{ id: `acc:${acc.id}`, label: `🏦 ${acc.name}` }]}
+              selected={sourceFilter}
+              onChange={toggleSource}
+            />
+          ))}
+          {cards.map(card => (
+            <FilterChips
+              key={`card:${card.id}`}
+              options={[{ id: `card:${card.id}`, label: `💳 ${card.name}` }]}
+              selected={sourceFilter}
+              onChange={toggleSource}
+            />
+          ))}
         </div>
       </div>
 
