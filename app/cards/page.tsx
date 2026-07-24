@@ -21,8 +21,11 @@ export default function CardsPage() {
 
   const invoice = activeCard ? getInvoiceForCard(activeCard.id) : undefined
   const invoiceTransactions = useMemo(
-    () => transactions.filter((tx) => invoice && tx.invoice_id === invoice.id),
-    [transactions, invoice]
+    () => transactions.filter((tx) => 
+      (invoice && tx.invoice_id === invoice.id) || 
+      (activeCard && tx.card_id === activeCard.id)
+    ),
+    [transactions, invoice, activeCard]
   )
 
   return (

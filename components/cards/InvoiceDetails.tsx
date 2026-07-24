@@ -19,8 +19,9 @@ const STATUS_LABEL: Record<string, string> = {
 }
 
 export function InvoiceDetails({ card, invoice, transactions }: InvoiceDetailsProps) {
-  const usedPercent = invoice ? Math.min((invoice.total_amount / card.limit_amount) * 100, 100) : 0
-  const available = card.limit_amount - (invoice?.total_amount || 0)
+  const usedAmount = invoice?.total_amount || transactions.reduce((s, t) => s + t.amount, 0)
+  const usedPercent = Math.min((usedAmount / card.limit_amount) * 100, 100)
+  const available = card.limit_amount - usedAmount
 
   const barColor = usedPercent > 80 ? '#EF4444' : usedPercent > 60 ? '#F59E0B' : '#10B981'
 
@@ -39,7 +40,7 @@ export function InvoiceDetails({ card, invoice, transactions }: InvoiceDetailsPr
 
         <div className="limit-bar-container">
           <div className="limit-bar-labels">
-            <span>Usado: <strong style={{ color: barColor }}>{formatCurrency(invoice?.total_amount || 0)}</strong></span>
+            <span>Usado: <strong style={{ color: barColor }}>{formatCurrency(usedAmount)}</strong></span>
             <span>Disponível: <strong style={{ color: '#10B981' }}>{formatCurrency(available)}</strong></span>
           </div>
           <div className="limit-bar-track">
@@ -81,7 +82,7 @@ export function InvoiceDetails({ card, invoice, transactions }: InvoiceDetailsPr
           <div style={{ padding: '12px 16px', background: 'var(--color-surface-2)', borderRadius: 'var(--radius-md)', display: 'flex', justifyContent: 'space-between', marginTop: 8 }}>
             <span style={{ fontWeight: 700, color: 'var(--color-text-primary)' }}>Total da Fatura</span>
             <span style={{ fontWeight: 800, fontSize: 16, color: 'var(--color-expense)' }}>
-              {formatCurrency(transactions.reduce((s, t) => s + t.amount, 0))}
+              {formatCurrency(usedAmount)}
             </span>
           </div>
         </div>
