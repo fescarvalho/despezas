@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import type { Loan } from '@/types'
 import { Modal } from '@/components/ui/Modal'
-import { formatCurrency } from '@/lib/utils'
+import { formatCurrency } from '@/lib/formatters'
 import { Landmark, Trash2 } from 'lucide-react'
 
 interface LoanManagerProps {
