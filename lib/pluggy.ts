@@ -9,7 +9,7 @@
  */
 
 import { supabase } from './supabase'
-import { fetchPluggyAccounts, fetchPluggyTransactions, createPluggyConnectToken, fetchPluggyItem } from './pluggyService'
+import { fetchPluggyAccounts, fetchPluggyTransactions, createPluggyConnectToken, fetchPluggyItem, fetchPluggyLoans } from './pluggyService'
 
 export async function getConnectToken(): Promise<{ token?: string; error?: string }> {
   try {
@@ -176,6 +176,24 @@ export async function syncWithPluggy(itemId: string): Promise<{ synced: number; 
         if (!error) synced++
         else console.warn('Error upserting transaction:', error.message)
       }
+    }
+
+    // 4. Fetch and upsert loans
+    const loans = await fetchPluggyLoans(itemId)
+    for (const loan of loans) {
+      const { error } = await supabase.from('loans').upsert(
+        {
+          id: loan.id,
+          name: loan.productName || 'Empréstimo',
+          contract_amount: loan.contractAmount || 0,
+          outstanding_balance: loan.payments?.contractOutstandingBalance || loan.installments?.contractRemainingNumber || 0,
+          due_date: loan.dueDate ? loan.dueDate.split('T')[0] : null,
+          installments_total: loan.installments?.totalNumberOfInstallments || null,
+          installments_paid: loan.installments?.paidInstallments || null
+        },
+        { onConflict: 'id' }
+      )
+      if (error) console.warn('Error upserting loan:', error.message)
     }
 
     return { synced }

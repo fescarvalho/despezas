@@ -4,14 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
 import type { Account } from '@/types'
 
-// Seed data for when the database is empty
-const SEED_ACCOUNTS: Omit<Account, 'created_at'>[] = [
-  { id: 'acc-1', name: 'Conta Corrente', type: 'checking', balance: 4250.75, icon: '🏦' },
-  { id: 'acc-2', name: 'Poupança', type: 'savings', balance: 18500.0, icon: '💰' },
-  { id: 'acc-3', name: 'Carteira', type: 'checking', balance: 350.0, icon: '👛' },
-]
 
-let localMockAccounts: Account[] | null = null
 
 export function useAccounts() {
   const [accounts, setAccounts] = useState<Account[]>([])
@@ -29,15 +22,10 @@ export function useAccounts() {
 
       if (err) throw err
 
-      if (!data || data.length === 0) {
-        if (!localMockAccounts) localMockAccounts = [...SEED_ACCOUNTS] as Account[]
-        setAccounts([...localMockAccounts])
-      } else {
-        setAccounts(data)
-      }
-    } catch {
-      if (!localMockAccounts) localMockAccounts = [...SEED_ACCOUNTS] as Account[]
-      setAccounts([...localMockAccounts])
+      setAccounts(data || [])
+    } catch (e) {
+      console.error('Error fetching accounts:', e)
+      setAccounts([])
     } finally {
       setLoading(false)
     }
@@ -52,12 +40,8 @@ export function useAccounts() {
   const createAccount = async (payload: Omit<Account, 'id' | 'created_at'>) => {
     const { data, error: err } = await supabase.from('accounts').insert(payload).select().single()
     if (err) {
-      console.warn('Supabase insert failed, using local state fallback', err)
-      const newAcc = { ...payload, id: `acc-new-${Date.now()}` } as Account
-      if (!localMockAccounts) localMockAccounts = [...SEED_ACCOUNTS] as Account[]
-      localMockAccounts.push(newAcc)
-      setAccounts([...localMockAccounts])
-      return newAcc
+      console.error('Supabase insert failed:', err)
+      return null as unknown as Account
     }
     setAccounts((prev) => [...prev, data])
     return data
@@ -66,10 +50,7 @@ export function useAccounts() {
   const updateAccount = async (id: string, payload: Partial<Account>) => {
     const { error: err } = await supabase.from('accounts').update(payload).eq('id', id)
     if (err) {
-      console.warn('Supabase update failed, using local state fallback', err)
-      if (!localMockAccounts) localMockAccounts = [...SEED_ACCOUNTS] as Account[]
-      localMockAccounts = localMockAccounts.map((a) => a.id === id ? { ...a, ...payload } : a)
-      setAccounts([...localMockAccounts])
+      console.error('Supabase update failed:', err)
       return
     }
     await fetchAccounts()
@@ -78,10 +59,7 @@ export function useAccounts() {
   const deleteAccount = async (id: string) => {
     const { error: err } = await supabase.from('accounts').delete().eq('id', id)
     if (err) {
-      console.warn('Supabase delete failed, using local state fallback', err)
-      if (!localMockAccounts) localMockAccounts = [...SEED_ACCOUNTS] as Account[]
-      localMockAccounts = localMockAccounts.filter((a) => a.id !== id)
-      setAccounts([...localMockAccounts])
+      console.error('Supabase delete failed:', err)
       return
     }
     setAccounts((prev) => prev.filter((a) => a.id !== id))

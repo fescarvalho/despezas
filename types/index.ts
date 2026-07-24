@@ -11,6 +11,17 @@ export interface Account {
   created_at?: string
 }
 
+export interface Loan {
+  id: string
+  name: string
+  contract_amount: number
+  outstanding_balance: number
+  due_date: string | null
+  installments_total: number | null
+  installments_paid: number | null
+  created_at?: string
+}
+
 export type CardBrand = 'visa' | 'mastercard' | 'elo' | 'amex' | 'hipercard'
 
 export interface CreditCard {

@@ -3,11 +3,13 @@
 import { useCategories } from '@/hooks/useCategories'
 import { useAccounts } from '@/hooks/useAccounts'
 import { useCreditCards } from '@/hooks/useCreditCards'
+import { useLoans } from '@/hooks/useLoans'
 import { useTheme } from '@/hooks/useTheme'
 import { PluggySyncButton } from '@/components/settings/PluggySyncButton'
 import { CategoryManager } from '@/components/settings/CategoryManager'
 import { AccountManager } from '@/components/settings/AccountManager'
 import { CreditCardManager } from '@/components/settings/CreditCardManager'
+import { LoanManager } from '@/components/settings/LoanManager'
 import { ToastProvider } from '@/components/ui/Toast'
 import { Wifi, Tag, Info, Shield, Palette, Landmark } from 'lucide-react'
 
@@ -15,6 +17,7 @@ function SettingsContent() {
   const { categories, createCategory, deleteCategory } = useCategories()
   const { accounts, createAccount, updateAccount, deleteAccount } = useAccounts()
   const { cards, createCard, updateCard, deleteCard } = useCreditCards()
+  const { loans, deleteLoan } = useLoans()
   const { isDark, toggle } = useTheme()
 
   return (
@@ -106,6 +109,18 @@ function SettingsContent() {
             onCreate={async (data) => { await createCard(data) }}
             onUpdate={async (id, data) => { await updateCard(id, data) }}
             onDelete={async (id) => { await deleteCard(id) }}
+          />
+        </div>
+
+        {/* Meus Empréstimos */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+          <Landmark size={18} color="var(--color-accent)" />
+          <h2 className="section-title" style={{ marginBottom: 0 }}>Meus Empréstimos</h2>
+        </div>
+        <div className="card">
+          <LoanManager
+            loans={loans}
+            onDelete={async (id) => { await deleteLoan(id) }}
           />
         </div>
       </div>

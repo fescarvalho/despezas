@@ -61,6 +61,36 @@ export async function createPluggyConnectToken(): Promise<string | null> {
 }
 
 /**
+ * Passo 2.5: Buscar Empréstimos
+ * @param {string} itemId - O ID da sua conexão no Pluggy
+ */
+export async function fetchPluggyLoans(itemId: string) {
+  const token = await getPluggyToken()
+  if (!token) return []
+
+  try {
+    const response = await fetch(`${PLUGGY_API_URL}/loans?itemId=${itemId}`, {
+      method: 'GET',
+      headers: {
+        'X-API-KEY': token,
+        'Accept': 'application/json',
+      },
+    })
+    const responseData = await response.json()
+
+    if (!response.ok || responseData.errorId) {
+      console.error('Erro do Pluggy (Loans):', responseData)
+      return []
+    }
+
+    return responseData.results || []
+  } catch (error) {
+    console.error('fetchPluggyLoans Error:', error)
+    return []
+  }
+}
+
+/**
  * Passo 3: Buscar Transações
  * Usa o token para buscar as transações da sua conta conectada.
  * @param accountId - O ID da sua conta no Pluggy
