@@ -10,6 +10,7 @@ interface InvoiceDetailsProps {
   card: CreditCard
   invoice: Invoice | undefined
   transactions: Transaction[]
+  dateRange?: { startDate: string, endDate: string } | null
 }
 
 const STATUS_LABEL: Record<string, string> = {
@@ -18,7 +19,7 @@ const STATUS_LABEL: Record<string, string> = {
   paid: 'Paga',
 }
 
-export function InvoiceDetails({ card, invoice, transactions }: InvoiceDetailsProps) {
+export function InvoiceDetails({ card, invoice, transactions, dateRange }: InvoiceDetailsProps) {
   const usedAmount = invoice?.total_amount || transactions.reduce((s, t) => s + t.amount, 0)
   const usedPercent = Math.min((usedAmount / card.limit_amount) * 100, 100)
   const available = card.limit_amount - usedAmount
@@ -31,11 +32,18 @@ export function InvoiceDetails({ card, invoice, transactions }: InvoiceDetailsPr
       <div className="card" style={{ marginBottom: 16 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
           <span className="section-title" style={{ marginBottom: 0 }}>Limite do Cartão</span>
-          {invoice && (
-            <span className={`status-badge ${invoice.status}`}>
-              {STATUS_LABEL[invoice.status]}
-            </span>
-          )}
+          <div style={{ display: 'flex', gap: 8 }}>
+            {dateRange && (
+              <span className="status-badge" style={{ background: 'var(--color-surface-2)', color: 'var(--color-text-secondary)' }}>
+                {dateRange.startDate.split('-').reverse().slice(0, 2).join('/')} a {dateRange.endDate.split('-').reverse().slice(0, 2).join('/')}
+              </span>
+            )}
+            {invoice && (
+              <span className={`status-badge ${invoice.status}`}>
+                {STATUS_LABEL[invoice.status]}
+              </span>
+            )}
+          </div>
         </div>
 
         <div className="limit-bar-container">

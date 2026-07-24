@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import { useCreditCards } from '@/hooks/useCreditCards'
-import { useTransactions } from '@/hooks/useTransactions'
+import { useInvoiceTransactions } from '@/hooks/useInvoiceTransactions'
 import { useMonthSelector } from '@/hooks/useMonthSelector'
 import { CreditCardCarousel } from '@/components/cards/CreditCardCarousel'
 import { InvoiceDetails } from '@/components/cards/InvoiceDetails'
@@ -14,19 +14,17 @@ import type { CreditCard } from '@/types'
 export default function CardsPage() {
   const { monthYear, goNext, goPrev } = useMonthSelector()
   const { cards, loading, getInvoiceForCard } = useCreditCards()
-  const { transactions } = useTransactions(monthYear)
-
   const [selectedCard, setSelectedCard] = useState<CreditCard | null>(null)
   const activeCard = selectedCard || (cards.length > 0 ? cards[0] : null)
 
-  const invoice = activeCard ? getInvoiceForCard(activeCard.id) : undefined
-  const invoiceTransactions = useMemo(
-    () => transactions.filter((tx) => 
-      (invoice && tx.invoice_id === invoice.id) || 
-      (activeCard && tx.card_id === activeCard.id)
-    ),
-    [transactions, invoice, activeCard]
+  const { transactions: invoiceTransactions, dateRange } = useInvoiceTransactions(
+    activeCard?.id,
+    activeCard?.closing_day,
+    monthYear.month,
+    monthYear.year
   )
+
+  const invoice = activeCard ? getInvoiceForCard(activeCard.id) : undefined
 
   return (
     <div>
@@ -63,6 +61,7 @@ export default function CardsPage() {
               card={activeCard}
               invoice={invoice}
               transactions={invoiceTransactions}
+              dateRange={dateRange}
             />
           )}
         </div>
