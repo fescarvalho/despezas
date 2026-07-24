@@ -105,34 +105,48 @@ export function useTransactions(monthYear: MonthYear, search = '', typeFilter: s
     // Encontra o dia de fechamento do cartão selecionado (se houver)
     const selectedCard = payload.card_id ? cards.find((c) => c.id === payload.card_id) : null
     const closingDay = selectedCard?.closing_day ?? null
-    
+
+    /** Formata Date como YYYY-MM-DD no fuso local (evita bug UTC do toISOString) */
+    const toLocalDateStr = (d: Date) =>
+      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+
     if (payload.is_installment) {
       const freqMonths: Record<string, number> = {
         mensal: 1, bimestral: 2, trimestral: 3, semestral: 6, anual: 12
       }
       const step = freqMonths[payload.frequency || 'mensal'] || 1
-      
-      const totalOccurrences = payload.installment_total === 1 ? 24 : payload.installment_total
-      const amountPerOcc = payload.is_value_per_installment 
-        ? payload.amount 
-        : (payload.amount / totalOccurrences)
-        
-      const [year, month, day] = payload.date.split('-').map(Number)
-      
-      for (let i = 0; i < totalOccurrences; i++) {
-        const dateObj = new Date(year, month - 1 + (i * step), day)
-        const dStr = dateObj.toISOString().split('T')[0]
 
-        // Determina o mês/ano da fatura (ajustando pelo fechamento)
+      const totalOccurrences = payload.installment_total === 1 ? 24 : payload.installment_total
+      const amountPerOcc = payload.is_value_per_installment
+        ? payload.amount
+        : (payload.amount / totalOccurrences)
+
+      const [year, month, day] = payload.date.split('-').map(Number)
+
+      // Para compras no cartão: se a compra for >= dia de fechamento,
+      // a parcela 1 começa no próximo mês; caso contrário, começa no mês atual.
+      let startYear = year
+      let startMonth = month // 1-indexed
+      if (payload.card_id && closingDay !== null) {
+        const invoiceStart = getInvoiceMonth(payload.date, closingDay)
+        startYear = invoiceStart.year
+        startMonth = invoiceStart.month
+      }
+
+      for (let i = 0; i < totalOccurrences; i++) {
+        const dateObj = new Date(startYear, startMonth - 1 + (i * step), day)
+        const dStr = toLocalDateStr(dateObj)
+
+        // Resolve a fatura correspondente a essa parcela
         let invoiceId: string | null = null
         if (payload.card_id && closingDay !== null) {
           const invoiceMonth = getInvoiceMonth(dStr, closingDay)
           invoiceId = await resolveInvoiceId(payload.card_id, invoiceMonth.month, invoiceMonth.year)
         }
-        
+
         payloads.push({
-          description: payload.installment_total === 1 
-            ? payload.description 
+          description: payload.installment_total === 1
+            ? payload.description
             : `${payload.description} (${i + 1}/${totalOccurrences})`,
           amount: amountPerOcc,
           date: dStr,
@@ -146,7 +160,7 @@ export function useTransactions(monthYear: MonthYear, search = '', typeFilter: s
         })
       }
     } else {
-      // Determina o mês/ano da fatura (ajustando pelo fechamento)
+      // Compra simples: mantém a data original, mas atribui à fatura correta
       let invoiceId: string | null = null
       if (payload.card_id && closingDay !== null) {
         const invoiceMonth = getInvoiceMonth(payload.date, closingDay)
