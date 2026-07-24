@@ -225,27 +225,98 @@ export function useTransactions(monthYear: MonthYear, search = '', typeFilter: s
     return data
   }
 
-  const deleteTransaction = async (id: string) => {
-    const { error: err } = await supabase.from('transactions').delete().eq('id', id)
+  const deleteTransaction = async (id: string, scope: 'single' | 'future' | 'all' = 'single', originalTx?: Transaction) => {
+    if (scope === 'single' || !originalTx?.created_at) {
+      const { error: err } = await supabase.from('transactions').delete().eq('id', id)
+      if (err) {
+        console.error('Supabase delete failed:', err)
+        throw err
+      }
+      setTransactions((prev) => prev.filter((t) => t.id !== id))
+      return
+    }
+
+    let query = supabase.from('transactions').delete().eq('created_at', originalTx.created_at)
+    if (scope === 'future') {
+      query = query.gte('date', originalTx.date)
+    }
+
+    const { error: err } = await query
     if (err) {
-      console.error('Supabase delete failed:', err)
+      console.error('Supabase delete bulk failed:', err)
       throw err
     }
-    setTransactions((prev) => prev.filter((t) => t.id !== id))
+    await fetchTransactions()
   }
 
-  const updateTransaction = async (id: string, payload: any) => {
+  const updateTransaction = async (id: string, payload: any, scope: 'single' | 'future' | 'all' = 'single', originalTx?: Transaction) => {
     const dbPayload = { ...payload }
     delete dbPayload.is_installment
     delete dbPayload.installment_total
     delete dbPayload.frequency
     delete dbPayload.is_value_per_installment
 
-    const { error: err } = await supabase.from('transactions').update(dbPayload).eq('id', id)
-    if (err) {
-      console.error('Supabase update failed:', err)
-      throw err
+    const selectedCard = payload.card_id ? cards.find((c) => c.id === payload.card_id) : null
+    const closingDay = selectedCard?.closing_day ?? null
+
+    if (scope === 'single' || !originalTx?.created_at) {
+      let invoiceId: string | null = null
+      if (payload.card_id && closingDay !== null) {
+        const invoiceMonth = getInvoiceMonth(payload.date, closingDay)
+        invoiceId = await resolveInvoiceId(payload.card_id, invoiceMonth.month, invoiceMonth.year)
+      }
+      dbPayload.invoice_id = invoiceId
+
+      const { error: err } = await supabase.from('transactions').update(dbPayload).eq('id', id)
+      if (err) {
+        console.error('Supabase update failed:', err)
+        throw err
+      }
+      await fetchTransactions()
+      return
     }
+
+    // Bulk update: fetch matching transactions
+    let query = supabase.from('transactions').select('*').eq('created_at', originalTx.created_at)
+    if (scope === 'future') {
+      query = query.gte('date', originalTx.date)
+    }
+    const { data: targets, error: fetchErr } = await query
+    if (fetchErr || !targets) throw fetchErr
+
+    const upsertPayloads = await Promise.all(targets.map(async (t) => {
+      let newDescription = dbPayload.description
+      if (t.installment_info) {
+        newDescription = `${dbPayload.description} (${t.installment_info.current}/${t.installment_info.total})`
+      } else {
+        const match = t.description.match(/\(\d+\/\d+\)$/)
+        if (match) {
+          newDescription = `${dbPayload.description} ${match[0]}`
+        }
+      }
+
+      let invoiceId: string | null = null
+      // Use original date of the target transaction, not the payload date (payload date might just be the one the user selected in the modal)
+      // Actually, if the user changed the date, how do we apply it to all? 
+      // Usually date changes aren't applied to all installments, only the base description/amount/card.
+      // We will keep the target's original date.
+      if (payload.card_id && closingDay !== null) {
+        const invoiceMonth = getInvoiceMonth(t.date, closingDay)
+        invoiceId = await resolveInvoiceId(payload.card_id, invoiceMonth.month, invoiceMonth.year)
+      }
+
+      return {
+        ...t,
+        ...dbPayload,
+        date: t.date, // keep original date
+        description: newDescription,
+        invoice_id: invoiceId
+      }
+    }))
+
+    const { error: err } = await supabase.from('transactions').upsert(upsertPayloads)
+    if (err) throw err
+    
     await fetchTransactions()
   }
 

@@ -50,10 +50,10 @@ function TransactionsContent() {
     return Array.from(map.entries()).sort((a, b) => b[0].localeCompare(a[0]))
   }, [transactions])
 
-  const handleSave = async (data: Parameters<typeof createTransaction>[0]) => {
+  const handleSave = async (data: Parameters<typeof createTransaction>[0], scope: 'single' | 'future' | 'all' = 'single') => {
     try {
       if (editingTx) {
-        await updateTransaction(editingTx.id, data)
+        await updateTransaction(editingTx.id, data, scope, editingTx)
         showToast('Transação atualizada com sucesso!', 'success')
       } else {
         await createTransaction(data as any)
@@ -65,9 +65,9 @@ function TransactionsContent() {
     }
   }
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (id: string, scope: 'single' | 'future' | 'all' = 'single') => {
     try {
-      await deleteTransaction(id)
+      await deleteTransaction(id, scope, editingTx || undefined)
       showToast('Transação excluída com sucesso!', 'success')
       setEditingTx(null)
     } catch (err: any) {

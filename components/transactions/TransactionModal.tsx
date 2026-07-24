@@ -8,8 +8,8 @@ import type { Category, Account, CreditCard, Transaction } from '@/types'
 interface TransactionModalProps {
   isOpen: boolean
   onClose: () => void
-  onSave: (data: TransactionFormData) => Promise<void>
-  onDelete?: (id: string) => Promise<void>
+  onSave: (data: TransactionFormData, scope?: 'single' | 'future' | 'all') => Promise<void>
+  onDelete?: (id: string, scope?: 'single' | 'future' | 'all') => Promise<void>
   categories: Category[]
   accounts: Account[]
   cards: CreditCard[]
@@ -52,6 +52,7 @@ export function TransactionModal({
   const [isValuePerInstallment, setIsValuePerInstallment] = useState(false)
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [confirmScopeAction, setConfirmScopeAction] = useState<'edit' | 'delete' | null>(null)
 
   // Initialize form when modal opens or initialData changes
   useEffect(() => {
@@ -82,6 +83,7 @@ export function TransactionModal({
         setFrequency('mensal')
         setIsValuePerInstallment(false)
       }
+      setConfirmScopeAction(null)
     }
   }, [isOpen, initialData])
 
@@ -102,9 +104,15 @@ export function TransactionModal({
 
   const filteredCats = categories.filter((c) => c.type === type)
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleSubmit = async (e: React.FormEvent, bypassScope = false, scope: 'single' | 'future' | 'all' = 'single') => {
+    if (e.preventDefault) e.preventDefault()
     if (!description || !amount) return
+    
+    if (!bypassScope && initialData?.is_installment) {
+      setConfirmScopeAction('edit')
+      return
+    }
+
     setSaving(true)
     try {
       await onSave({
@@ -119,7 +127,7 @@ export function TransactionModal({
         installment_total: isInstallment ? (typeof installmentTotal === 'number' ? installmentTotal : 1) : undefined,
         frequency: isInstallment ? frequency : undefined,
         is_value_per_installment: isInstallment ? isValuePerInstallment : undefined,
-      })
+      }, scope)
       // Reset form handled by useEffect on next open
       onClose()
     } finally {
@@ -127,11 +135,17 @@ export function TransactionModal({
     }
   }
 
-  const handleDelete = async () => {
+  const handleDelete = async (bypassScope = false, scope: 'single' | 'future' | 'all' = 'single') => {
     if (!initialData || !onDelete) return
+    
+    if (!bypassScope && initialData?.is_installment) {
+      setConfirmScopeAction('delete')
+      return
+    }
+
     setDeleting(true)
     try {
-      await onDelete(initialData.id)
+      await onDelete(initialData.id, scope)
       onClose()
     } finally {
       setDeleting(false)
@@ -139,8 +153,43 @@ export function TransactionModal({
   }
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={initialData ? "Editar Transação" : "Nova Transação"}>
-      <form onSubmit={handleSubmit}>
+    <Modal isOpen={isOpen} onClose={onClose} title={confirmScopeAction ? "Aplicar em quais parcelas?" : (initialData ? "Editar Transação" : "Nova Transação")}>
+      {confirmScopeAction ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <p style={{ fontSize: 14, color: 'var(--color-text-secondary)', marginBottom: 8, textAlign: 'center' }}>
+            Esta transação faz parte de uma compra parcelada ou recorrente.
+          </p>
+          <button
+            className="btn btn-secondary"
+            style={{ padding: '16px', justifyContent: 'center' }}
+            onClick={(e) => confirmScopeAction === 'edit' ? handleSubmit(e, true, 'single') : handleDelete(true, 'single')}
+          >
+            <strong>Apenas esta parcela</strong>
+            <span style={{ display: 'block', fontSize: 11, color: 'var(--color-text-muted)', fontWeight: 400 }}>As outras parcelas não serão alteradas.</span>
+          </button>
+          <button
+            className="btn btn-secondary"
+            style={{ padding: '16px', justifyContent: 'center' }}
+            onClick={(e) => confirmScopeAction === 'edit' ? handleSubmit(e, true, 'future') : handleDelete(true, 'future')}
+          >
+            <strong>Esta e as parcelas futuras</strong>
+            <span style={{ display: 'block', fontSize: 11, color: 'var(--color-text-muted)', fontWeight: 400 }}>Parcelas anteriores não serão alteradas.</span>
+          </button>
+          <button
+            className="btn btn-secondary"
+            style={{ padding: '16px', justifyContent: 'center' }}
+            onClick={(e) => confirmScopeAction === 'edit' ? handleSubmit(e, true, 'all') : handleDelete(true, 'all')}
+          >
+            <strong>Todas as parcelas</strong>
+            <span style={{ display: 'block', fontSize: 11, color: 'var(--color-text-muted)', fontWeight: 400 }}>Aplica a alteração em todas as parcelas deste grupo.</span>
+          </button>
+          
+          <button type="button" className="btn btn-secondary btn-full" style={{ marginTop: 16 }} onClick={() => setConfirmScopeAction(null)} disabled={saving || deleting}>
+            Voltar
+          </button>
+        </div>
+      ) : (
+      <form onSubmit={(e) => handleSubmit(e, false, 'single')}>
         {/* Type toggle */}
         <div className="type-toggle">
           <button
@@ -463,6 +512,7 @@ export function TransactionModal({
           </div>
         )}
       </form>
+      )}
     </Modal>
   )
 }
