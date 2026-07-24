@@ -71,7 +71,7 @@ export interface Transaction {
   account_id?: string | null
   card_id?: string | null
   invoice_id?: string | null
-  category_id: string
+  category_id?: string | null
   amount: number
   date: string
   description: string

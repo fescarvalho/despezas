@@ -21,7 +21,7 @@ export interface TransactionFormData {
   amount: number
   date: string
   type: 'income' | 'expense'
-  category_id: string
+  category_id?: string | null
   account_id?: string | null
   card_id?: string | null
   is_installment: boolean
@@ -102,7 +102,7 @@ export function TransactionModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!description || !amount || !categoryId) return
+    if (!description || !amount) return
     setSaving(true)
     try {
       await onSave({
@@ -110,7 +110,7 @@ export function TransactionModal({
         amount: parsedAmount,
         date,
         type,
-        category_id: categoryId,
+        category_id: categoryId || null,
         account_id: sourceId.startsWith('acc:') ? sourceId.replace('acc:', '') : null,
         card_id: sourceId.startsWith('card:') ? sourceId.replace('card:', '') : null,
         is_installment: isInstallment,
@@ -233,13 +233,12 @@ export function TransactionModal({
         </div>
 
         <div className="form-group">
-          <label className="form-label" htmlFor="tx-category">Categoria</label>
+          <label className="form-label" htmlFor="tx-category">Categoria <span style={{ color: 'var(--color-text-muted)', fontWeight: 400 }}>(opcional)</span></label>
           <select
             id="tx-category"
             className="form-select"
             value={categoryId}
             onChange={(e) => setCategoryId(e.target.value)}
-            required
           >
             <option value="">Selecione uma categoria</option>
             {filteredCats.map((cat) => (
