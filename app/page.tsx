@@ -8,7 +8,7 @@ import { useCreditCards } from '@/hooks/useCreditCards'
 import { useCategories } from '@/hooks/useCategories'
 import { MonthSelector } from '@/components/dashboard/MonthSelector'
 import { DashboardCard } from '@/components/dashboard/DashboardCard'
-import { LineChart } from '@/components/dashboard/LineChart'
+import { DonutChart } from '@/components/dashboard/DonutChart'
 import { TransactionItem } from '@/components/transactions/TransactionItem'
 import { SkeletonCard, SkeletonList } from '@/components/ui/Skeleton'
 import { EmptyState } from '@/components/ui/EmptyState'
@@ -84,8 +84,14 @@ export default function DashboardPage() {
         {/* Charts + Recent */}
         <div className="charts-grid">
           <div className="card">
-            <h2 className="section-title">Evolução de Despesas</h2>
-            <LineChart year={monthYear.year} cards={cards} />
+            <h2 className="section-title">Despesas por Categoria</h2>
+            {txLoading ? (
+              <div style={{ height: 280, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <span className="spinner dark" style={{ width: 40, height: 40 }} />
+              </div>
+            ) : (
+              <DonutChart transactions={transactions} categories={categories} />
+            )}
           </div>
 
           <div className="card">

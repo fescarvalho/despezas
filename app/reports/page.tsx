@@ -8,6 +8,8 @@ import { MonthSelector } from '@/components/dashboard/MonthSelector'
 import { BarChart } from '@/components/reports/BarChart'
 import { BudgetBar } from '@/components/reports/BudgetBar'
 import { TopExpenses } from '@/components/reports/TopExpenses'
+import { LineChart } from '@/components/dashboard/LineChart'
+import { useCreditCards } from '@/hooks/useCreditCards'
 import { addMonths, getMonthName, formatCurrency } from '@/lib/formatters'
 import { TrendingDown } from 'lucide-react'
 
@@ -15,6 +17,7 @@ export default function ReportsPage() {
   const { monthYear, goNext, goPrev } = useMonthSelector()
   const { transactions } = useTransactions(monthYear)
   const { categories } = useCategories()
+  const { cards } = useCreditCards()
 
   // Build 6-month data — only expenses for the horizontal chart
   const sixMonths = useMemo(() => {
@@ -52,6 +55,22 @@ export default function ReportsPage() {
           <p className="page-subtitle">Analise seus hábitos financeiros</p>
         </div>
         <MonthSelector month={monthYear.month} year={monthYear.year} onPrev={goPrev} onNext={goNext} />
+      </div>
+
+      {/* Annual expenses line chart */}
+      <div className="card card-lg" style={{ marginBottom: 24 }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginBottom: 20 }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <TrendingDown size={18} color="var(--color-expense)" />
+              <h2 className="section-title" style={{ marginBottom: 0 }}>Evolução Anual</h2>
+            </div>
+            <p style={{ fontSize: 13, color: 'var(--color-text-muted)', marginTop: 4 }}>
+              Despesas ao longo de {monthYear.year}
+            </p>
+          </div>
+        </div>
+        <LineChart year={monthYear.year} cards={cards} />
       </div>
 
       {/* Horizontal expenses bar chart */}
