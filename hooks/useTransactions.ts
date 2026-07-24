@@ -30,28 +30,49 @@ export function useTransactions(monthYear: MonthYear, search = '', typeFilter: s
     setError(null)
     try {
       const startDate = `${monthYear.year}-${String(monthYear.month).padStart(2, '0')}-01`
-      const endDate = new Date(monthYear.year, monthYear.month, 0).toISOString().split('T')[0]
+      const lastDay = new Date(monthYear.year, monthYear.month, 0).getDate()
+      const endDate   = `${monthYear.year}-${String(monthYear.month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`
 
+      // Busca os IDs das faturas do mês/ano selecionado
+      const { data: monthInvoices } = await supabase
+        .from('invoices')
+        .select('id')
+        .eq('month', monthYear.month)
+        .eq('year', monthYear.year)
+
+      const invoiceIds = monthInvoices?.map((i) => i.id) ?? []
+
+      // Monta a query principal
       let query = supabase
         .from('transactions')
         .select('*, category:categories(*), account:accounts(*), invoice:invoices(*, credit_card:credit_cards(*))')
-        .gte('date', startDate)
-        .lte('date', endDate)
         .order('date', { ascending: false })
 
-      if (search) query = query.ilike('description', `%${search}%`)
-      if (sourceFilter.length > 0) {
-        const accFilters = sourceFilter.filter(s => s.startsWith('acc:')).map(s => s.replace('acc:', ''))
-        const cardFilters = sourceFilter.filter(s => s.startsWith('card:')).map(s => s.replace('card:', ''))
-        
-        let orString = []
-        if (accFilters.length > 0) orString.push(`account_id.in.(${accFilters.join(',')})`)
-        if (cardFilters.length > 0) orString.push(`card_id.in.(${cardFilters.join(',')})`)
-        
-        if (orString.length > 0) {
-          query = query.or(orString.join(','))
-        }
+      if (invoiceIds.length > 0) {
+        // Transações COM invoice_id → filtrar pelo mês da fatura
+        // Transações SEM invoice_id (antigas / sem cartão) → filtrar por data
+        query = query.or(
+          `invoice_id.in.(${invoiceIds.join(',')}),and(invoice_id.is.null,date.gte.${startDate},date.lte.${endDate})`
+        )
+      } else {
+        // Nenhuma fatura para este mês → filtra só por data
+        query = query.gte('date', startDate).lte('date', endDate)
       }
+
+      // Filtros secundários
+      if (search) query = query.ilike('description', `%${search}%`)
+
+      if (sourceFilter.length > 0) {
+        const accFilters  = sourceFilter.filter(s => s.startsWith('acc:')).map(s => s.replace('acc:', ''))
+        const cardFilters = sourceFilter.filter(s => s.startsWith('card:')).map(s => s.replace('card:', ''))
+
+        const orParts: string[] = []
+        if (accFilters.length  > 0) orParts.push(`account_id.in.(${accFilters.join(',')})`)
+        if (cardFilters.length > 0) orParts.push(`card_id.in.(${cardFilters.join(',')})`)
+
+        if (orParts.length > 0) query = query.or(orParts.join(','))
+      }
+
       const { data, error: err } = await query
       if (err) throw err
       setTransactions(data || [])
