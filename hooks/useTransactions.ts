@@ -29,53 +29,62 @@ export function useTransactions(monthYear: MonthYear, search = '', typeFilter: s
     setLoading(true)
     setError(null)
     try {
-      const startDate = `${monthYear.year}-${String(monthYear.month).padStart(2, '0')}-01`
-      const lastDay = new Date(monthYear.year, monthYear.month, 0).getDate()
-      const endDate   = `${monthYear.year}-${String(monthYear.month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`
+      const selectedM = monthYear.month
+      const selectedY = monthYear.year
 
-      // Busca os IDs das faturas do mês/ano selecionado
-      const { data: monthInvoices } = await supabase
-        .from('invoices')
-        .select('id')
-        .eq('month', monthYear.month)
-        .eq('year', monthYear.year)
+      // Datas do mês selecionado
+      const lastDay    = new Date(selectedY, selectedM, 0).getDate()
+      const startDateStr = `${selectedY}-${String(selectedM).padStart(2, '0')}-01`
+      const endDateStr   = `${selectedY}-${String(selectedM).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`
 
-      const invoiceIds = monthInvoices?.map((i) => i.id) ?? []
+      // Buscamos do mês anterior ao mês atual para capturar compras de cartão
+      // feitas no mês anterior mas após o fechamento (que pertencem a esta fatura)
+      const prevMonth = selectedM === 1 ? 12 : selectedM - 1
+      const prevYear  = selectedM === 1 ? selectedY - 1 : selectedY
+      const fetchStart = `${prevYear}-${String(prevMonth).padStart(2, '0')}-01`
 
-      // Monta a query principal
       let query = supabase
         .from('transactions')
         .select('*, category:categories(*), account:accounts(*), invoice:invoices(*, credit_card:credit_cards(*))')
+        .gte('date', fetchStart)
+        .lte('date', endDateStr)
         .order('date', { ascending: false })
 
-      if (invoiceIds.length > 0) {
-        // Transações COM invoice_id → filtrar pelo mês da fatura
-        // Transações SEM invoice_id (antigas / sem cartão) → filtrar por data
-        query = query.or(
-          `invoice_id.in.(${invoiceIds.join(',')}),and(invoice_id.is.null,date.gte.${startDate},date.lte.${endDate})`
-        )
-      } else {
-        // Nenhuma fatura para este mês → filtra só por data
-        query = query.gte('date', startDate).lte('date', endDate)
-      }
-
-      // Filtros secundários
       if (search) query = query.ilike('description', `%${search}%`)
 
       if (sourceFilter.length > 0) {
         const accFilters  = sourceFilter.filter(s => s.startsWith('acc:')).map(s => s.replace('acc:', ''))
         const cardFilters = sourceFilter.filter(s => s.startsWith('card:')).map(s => s.replace('card:', ''))
-
         const orParts: string[] = []
         if (accFilters.length  > 0) orParts.push(`account_id.in.(${accFilters.join(',')})`)
         if (cardFilters.length > 0) orParts.push(`card_id.in.(${cardFilters.join(',')})`)
-
         if (orParts.length > 0) query = query.or(orParts.join(','))
       }
 
       const { data, error: err } = await query
       if (err) throw err
-      setTransactions(data || [])
+
+      // Filtragem client-side: determina o mês de fatura de cada transação
+      const result = (data || []).filter(tx => {
+        if (tx.card_id) {
+          // Prioridade 1: transação já tem invoice_id com mês/ano definidos
+          if (tx.invoice?.month != null && tx.invoice?.year != null) {
+            return tx.invoice.month === selectedM && tx.invoice.year === selectedY
+          }
+          // Prioridade 2: usar o dia de fechamento do cartão para calcular o mês da fatura
+          const card = cards.find(c => c.id === tx.card_id)
+          if (card?.closing_day) {
+            const inv = getInvoiceMonth(tx.date, card.closing_day)
+            return inv.month === selectedM && inv.year === selectedY
+          }
+          // Fallback: filtra por data
+          return tx.date >= startDateStr && tx.date <= endDateStr
+        }
+        // Sem cartão: filtra por data do mês selecionado
+        return tx.date >= startDateStr && tx.date <= endDateStr
+      })
+
+      setTransactions(result)
     } catch (e) {
       console.error('Error fetching transactions:', e)
       setTransactions([])
@@ -83,7 +92,7 @@ export function useTransactions(monthYear: MonthYear, search = '', typeFilter: s
       setLoading(false)
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [monthYear.month, monthYear.year, search, typeFilter.join(','), sourceFilter.join(',')])
+  }, [monthYear.month, monthYear.year, search, typeFilter.join(','), sourceFilter.join(','), cards.map(c => c.id + c.closing_day).join(',')])
 
   useEffect(() => { fetchTransactions() }, [fetchTransactions])
 
