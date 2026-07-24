@@ -6,8 +6,8 @@ import { syncWithPluggy, getConnectToken } from '@/lib/pluggy'
 import { useToast } from '@/components/ui/Toast'
 import dynamic from 'next/dynamic'
 
-// PluggyConnect usually requires client-side rendering
-const PluggyConnect = dynamic(() => import('react-pluggy-connect').then((mod) => mod.PluggyConnect), { ssr: false })
+// PluggyConnect usually requires client-side rendering and references window
+const PluggyConnectWrapper = dynamic(() => import('./PluggyConnectWrapper'), { ssr: false })
 
 interface PluggySyncButtonProps {
   onSynced?: () => void
@@ -57,7 +57,7 @@ export function PluggySyncButton({ onSynced }: PluggySyncButtonProps) {
   if (connectToken) {
     return (
       <div style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <PluggyConnect
+        <PluggyConnectWrapper
           connectToken={connectToken}
           onSuccess={handleSuccess}
           onError={(err) => {
