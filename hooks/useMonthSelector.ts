@@ -5,10 +5,7 @@ import { getCurrentMonthYear, addMonths } from '@/lib/formatters'
 import type { MonthYear } from '@/types'
 
 export function useMonthSelector() {
-  const [monthYear, setMonthYear] = useState<MonthYear>(() => {
-    const current = getCurrentMonthYear()
-    return addMonths(current.month, current.year, 1)
-  })
+  const [monthYear, setMonthYear] = useState<MonthYear>(getCurrentMonthYear())
 
   const goNext = useCallback(() => {
     setMonthYear((prev) => addMonths(prev.month, prev.year, 1))
