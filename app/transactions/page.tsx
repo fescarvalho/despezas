@@ -26,10 +26,10 @@ function TransactionsContent() {
   const [editingTx, setEditingTx] = useState<Transaction | null>(null)
   const { showToast } = useToast()
 
-  const { transactions, loading, monthIncome, monthExpenses, createTransaction, updateTransaction, deleteTransaction } = useTransactions(monthYear, search, typeFilter, sourceFilter)
   const { categories } = useCategories()
   const { accounts } = useAccounts()
   const { cards } = useCreditCards()
+  const { transactions, loading, monthIncome, monthExpenses, createTransaction, updateTransaction, deleteTransaction } = useTransactions(monthYear, search, typeFilter, sourceFilter, cards)
 
   const toggleType = (type: string) => {
     setTypeFilter((prev) => prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type])
@@ -95,90 +95,56 @@ function TransactionsContent() {
         <MonthSelector month={monthYear.month} year={monthYear.year} onPrev={goPrev} onNext={goNext} />
       </div>
 
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        background: 'var(--color-surface-2)',
-        borderRadius: 'var(--radius-lg)',
-        padding: '16px 20px',
-        marginBottom: 24,
-        border: '1px solid var(--color-border)',
-        boxShadow: '0 4px 20px rgba(0,0,0,0.05)',
-      }}>
-        <div style={{ flex: 1, textAlign: 'center' }}>
-          <div style={{ fontSize: 12, color: 'var(--color-text-muted)', marginBottom: 4, fontWeight: 500, textTransform: 'uppercase', letterSpacing: 0.5 }}>Receitas</div>
-          <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--color-income)' }}>{formatCurrency(monthIncome)}</div>
+      <div className="tx-summary-bar">
+        <div className="tx-summary-item">
+          <div className="tx-summary-label">Receitas</div>
+          <div className="tx-summary-value income">{formatCurrency(monthIncome)}</div>
         </div>
-        <div style={{ width: 1, height: 40, background: 'var(--color-border)' }} />
-        <div style={{ flex: 1, textAlign: 'center' }}>
-          <div style={{ fontSize: 12, color: 'var(--color-text-muted)', marginBottom: 4, fontWeight: 500, textTransform: 'uppercase', letterSpacing: 0.5 }}>Despesas</div>
-          <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--color-expense)' }}>{formatCurrency(monthExpenses)}</div>
+        <div className="tx-summary-divider" />
+        <div className="tx-summary-item">
+          <div className="tx-summary-label">Despesas</div>
+          <div className="tx-summary-value expense">{formatCurrency(monthExpenses)}</div>
         </div>
-        <div style={{ width: 1, height: 40, background: 'var(--color-border)' }} />
-        <div style={{ flex: 1, textAlign: 'center' }}>
-          <div style={{ fontSize: 12, color: 'var(--color-text-muted)', marginBottom: 4, fontWeight: 500, textTransform: 'uppercase', letterSpacing: 0.5 }}>Saldo</div>
-          <div style={{ fontSize: 16, fontWeight: 800, color: (monthIncome - monthExpenses) >= 0 ? 'var(--color-income)' : 'var(--color-expense)' }}>
+        <div className="tx-summary-divider" />
+        <div className="tx-summary-item">
+          <div className="tx-summary-label">Saldo</div>
+          <div className={`tx-summary-value ${(monthIncome - monthExpenses) >= 0 ? 'income' : 'expense'} bold`}>
             {formatCurrency(monthIncome - monthExpenses)}
           </div>
         </div>
-
-        {/* Source Filters */}
-        {(accounts.length > 0 || cards.length > 0) && (
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 12 }}>
-            {accounts.map(acc => {
-              const id = `acc:${acc.id}`
-              const isActive = sourceFilter.includes(id)
-              return (
-                <button
-                  key={id}
-                  onClick={() => toggleSource(id)}
-                  className={`filter-chip ${isActive ? 'active' : ''}`}
-                  style={{
-                    padding: '6px 12px',
-                    borderRadius: 'var(--radius-full)',
-                    border: '1px solid',
-                    borderColor: isActive ? 'var(--color-primary)' : 'var(--color-border)',
-                    background: isActive ? 'var(--color-primary-light)' : 'var(--color-surface-1)',
-                    color: isActive ? 'var(--color-primary)' : 'var(--color-text-secondary)',
-                    fontSize: 13,
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    transition: 'all 0.2s'
-                  }}
-                >
-                  🏦 {acc.name}
-                </button>
-              )
-            })}
-            {cards.map(card => {
-              const id = `card:${card.id}`
-              const isActive = sourceFilter.includes(id)
-              return (
-                <button
-                  key={id}
-                  onClick={() => toggleSource(id)}
-                  className={`filter-chip ${isActive ? 'active' : ''}`}
-                  style={{
-                    padding: '6px 12px',
-                    borderRadius: 'var(--radius-full)',
-                    border: '1px solid',
-                    borderColor: isActive ? 'var(--color-primary)' : 'var(--color-border)',
-                    background: isActive ? 'var(--color-primary-light)' : 'var(--color-surface-1)',
-                    color: isActive ? 'var(--color-primary)' : 'var(--color-text-secondary)',
-                    fontSize: 13,
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    transition: 'all 0.2s'
-                  }}
-                >
-                  💳 {card.name}
-                </button>
-              )
-            })}
-          </div>
-        )}
       </div>
+
+      {/* Source Filters */}
+      {(accounts.length > 0 || cards.length > 0) && (
+        <div className="source-filter-bar">
+          {accounts.map(acc => {
+            const id = `acc:${acc.id}`
+            const isActive = sourceFilter.includes(id)
+            return (
+              <button
+                key={id}
+                onClick={() => toggleSource(id)}
+                className={`chip ${isActive ? 'active' : ''}`}
+              >
+                🏦 {acc.name}
+              </button>
+            )
+          })}
+          {cards.map(card => {
+            const id = `card:${card.id}`
+            const isActive = sourceFilter.includes(id)
+            return (
+              <button
+                key={id}
+                onClick={() => toggleSource(id)}
+                className={`chip ${isActive ? 'active' : ''}`}
+              >
+                💳 {card.name}
+              </button>
+            )
+          })}
+        </div>
+      )}
 
       <FilterChips
         search={search}

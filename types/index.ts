@@ -69,6 +69,7 @@ export interface InstallmentInfo {
 export interface Transaction {
   id: string
   account_id?: string | null
+  card_id?: string | null
   invoice_id?: string | null
   category_id: string
   amount: number

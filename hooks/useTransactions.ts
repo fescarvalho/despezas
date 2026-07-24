@@ -2,11 +2,25 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
-import type { Transaction, MonthYear } from '@/types'
+import type { Transaction, MonthYear, CreditCard } from '@/types'
 
 
 
-export function useTransactions(monthYear: MonthYear, search = '', typeFilter: string[] = [], sourceFilter: string[] = []) {
+/**
+ * Retorna o mês/ano da fatura ajustado para o cartão:
+ * Se a data da compra >= dia de fechamento, a fatura vai para o próximo mês.
+ */
+function getInvoiceMonth(purchaseDate: string, closingDay: number): { month: number; year: number } {
+  const [year, month, day] = purchaseDate.split('-').map(Number)
+  if (day >= closingDay) {
+    // Vai para o próximo mês
+    const next = new Date(year, month, 1) // month aqui já é o próximo (JS 0-indexed: month = atual)
+    return { month: next.getMonth() + 1, year: next.getFullYear() }
+  }
+  return { month, year }
+}
+
+export function useTransactions(monthYear: MonthYear, search = '', typeFilter: string[] = [], sourceFilter: string[] = [], cards: CreditCard[] = []) {
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -55,8 +69,42 @@ export function useTransactions(monthYear: MonthYear, search = '', typeFilter: s
   const monthIncome = transactions.filter((t) => t.type === 'income').reduce((s, t) => s + t.amount, 0)
   const monthExpenses = transactions.filter((t) => t.type === 'expense').reduce((s, t) => s + t.amount, 0)
 
+  /**
+   * Resolve (ou cria) a invoice para um determinado cartão + mês/ano.
+   * Retorna o invoice_id.
+   */
+  const resolveInvoiceId = async (cardId: string, month: number, year: number): Promise<string | null> => {
+    // Verifica se já existe
+    const { data: existing } = await supabase
+      .from('invoices')
+      .select('id')
+      .eq('card_id', cardId)
+      .eq('month', month)
+      .eq('year', year)
+      .maybeSingle()
+
+    if (existing) return existing.id
+
+    // Cria nova invoice
+    const { data: created, error } = await supabase
+      .from('invoices')
+      .insert({ card_id: cardId, month, year, status: 'open', total_amount: 0 })
+      .select('id')
+      .single()
+
+    if (error) {
+      console.error('Failed to create invoice:', error)
+      return null
+    }
+    return created.id
+  }
+
   const createTransaction = async (payload: any) => {
     const payloads = []
+
+    // Encontra o dia de fechamento do cartão selecionado (se houver)
+    const selectedCard = payload.card_id ? cards.find((c) => c.id === payload.card_id) : null
+    const closingDay = selectedCard?.closing_day ?? null
     
     if (payload.is_installment) {
       const freqMonths: Record<string, number> = {
@@ -74,6 +122,13 @@ export function useTransactions(monthYear: MonthYear, search = '', typeFilter: s
       for (let i = 0; i < totalOccurrences; i++) {
         const dateObj = new Date(year, month - 1 + (i * step), day)
         const dStr = dateObj.toISOString().split('T')[0]
+
+        // Determina o mês/ano da fatura (ajustando pelo fechamento)
+        let invoiceId: string | null = null
+        if (payload.card_id && closingDay !== null) {
+          const invoiceMonth = getInvoiceMonth(dStr, closingDay)
+          invoiceId = await resolveInvoiceId(payload.card_id, invoiceMonth.month, invoiceMonth.year)
+        }
         
         payloads.push({
           description: payload.installment_total === 1 
@@ -85,11 +140,19 @@ export function useTransactions(monthYear: MonthYear, search = '', typeFilter: s
           category_id: payload.category_id,
           account_id: payload.account_id,
           card_id: payload.card_id,
+          invoice_id: invoiceId,
           is_installment: payload.is_installment,
           installment_total: payload.installment_total,
         })
       }
     } else {
+      // Determina o mês/ano da fatura (ajustando pelo fechamento)
+      let invoiceId: string | null = null
+      if (payload.card_id && closingDay !== null) {
+        const invoiceMonth = getInvoiceMonth(payload.date, closingDay)
+        invoiceId = await resolveInvoiceId(payload.card_id, invoiceMonth.month, invoiceMonth.year)
+      }
+
       payloads.push({
         description: payload.description,
         amount: payload.amount,
@@ -98,6 +161,7 @@ export function useTransactions(monthYear: MonthYear, search = '', typeFilter: s
         category_id: payload.category_id,
         account_id: payload.account_id,
         card_id: payload.card_id,
+        invoice_id: invoiceId,
         is_installment: false,
       })
     }

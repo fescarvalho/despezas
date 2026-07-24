@@ -425,6 +425,58 @@ input, select, textarea { font-family: inherit; }
   margin-bottom: 10px;
 }
 
+/* Transaction summary bar */
+.tx-summary-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--color-surface-2);
+  border-radius: var(--radius-lg);
+  padding: 16px 20px;
+  margin-bottom: 16px;
+  border: 1px solid var(--color-border);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+}
+
+.tx-summary-item {
+  flex: 1;
+  text-align: center;
+}
+
+.tx-summary-label {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  margin-bottom: 4px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.tx-summary-value {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.tx-summary-value.income { color: var(--color-income); }
+.tx-summary-value.expense { color: var(--color-expense); }
+.tx-summary-value.bold { font-weight: 800; }
+
+.tx-summary-divider {
+  width: 1px;
+  height: 36px;
+  background: var(--color-border);
+  flex-shrink: 0;
+  margin: 0 8px;
+}
+
+/* Source filter bar */
+.source-filter-bar {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
 .transaction-item {
   display: flex;
   align-items: center;
@@ -1059,7 +1111,7 @@ input, select, textarea { font-family: inherit; }
   .main-content { margin-left: 0; overflow-x: hidden; }
   .bottom-nav { display: flex; }
   .page-container {
-    padding: 16px 16px calc(var(--nav-height) + 20px);
+    padding: 16px 12px calc(var(--nav-height) + 20px);
     overflow-x: hidden;
     width: 100%;
     max-width: 100vw;
@@ -1068,12 +1120,30 @@ input, select, textarea { font-family: inherit; }
   .charts-grid { grid-template-columns: 1fr; }
   .fab { bottom: calc(var(--nav-height) + 16px); right: 16px; }
   .page-title { font-size: 20px; }
-  .modal-box { padding: 20px; max-width: calc(100vw - 32px); }
+  .modal-box {
+    padding: 20px 16px;
+    max-width: calc(100vw - 32px);
+    max-height: 92dvh;
+    border-radius: var(--radius-lg);
+  }
   .month-selector { flex-wrap: nowrap; }
-  .page-header { flex-wrap: wrap; gap: 10px; }
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
   .filter-bar { flex-wrap: wrap; }
   .credit-card-visual { width: 100%; }
   .app-layout { overflow-x: hidden; max-width: 100vw; }
+  .tx-summary-bar {
+    padding: 12px 14px;
+    gap: 0;
+  }
+  .tx-summary-label { font-size: 10px; }
+  .tx-summary-value { font-size: 13px; }
+  .tx-summary-divider { margin: 0 4px; }
+  .source-filter-bar { overflow-x: auto; flex-wrap: nowrap; padding-bottom: 4px; }
+  .source-filter-bar .chip { flex-shrink: 0; font-size: 12px; padding: 6px 12px; }
 }
 
 @media (max-width: 480px) {
