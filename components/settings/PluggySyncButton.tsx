@@ -2,8 +2,12 @@
 
 import { useState } from 'react'
 import { RefreshCw, Wifi } from 'lucide-react'
-import { syncWithPluggy } from '@/lib/pluggy'
+import { syncWithPluggy, getConnectToken } from '@/lib/pluggy'
 import { useToast } from '@/components/ui/Toast'
+import dynamic from 'next/dynamic'
+
+// PluggyConnect usually requires client-side rendering
+const PluggyConnect = dynamic(() => import('react-pluggy-connect').then((mod) => mod.PluggyConnect), { ssr: false })
 
 interface PluggySyncButtonProps {
   onSynced?: () => void
@@ -13,10 +17,30 @@ export function PluggySyncButton({ onSynced }: PluggySyncButtonProps) {
   const [loading, setLoading] = useState(false)
   const { showToast } = useToast()
 
-  const handleSync = async () => {
+  const [connectToken, setConnectToken] = useState<string | null>(null)
+
+  const handleStartConnect = async () => {
     setLoading(true)
     try {
-      const result = await syncWithPluggy()
+      const result = await getConnectToken()
+      if (result.error || !result.token) {
+        showToast(`Erro ao iniciar conexão: ${result.error}`, 'error')
+      } else {
+        setConnectToken(result.token)
+      }
+    } catch (err) {
+      showToast('Erro inesperado ao conectar com Pluggy.', 'error')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleSuccess = async (itemData: any) => {
+    setConnectToken(null) // Close widget
+    setLoading(true)
+    showToast('Conexão feita! Importando transações...', 'success')
+    try {
+      const result = await syncWithPluggy(itemData.item.id)
       if (result.error) {
         showToast(`Erro na sincronização: ${result.error}`, 'error')
       } else {
@@ -30,9 +54,25 @@ export function PluggySyncButton({ onSynced }: PluggySyncButtonProps) {
     }
   }
 
+  if (connectToken) {
+    return (
+      <div style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <PluggyConnect
+          connectToken={connectToken}
+          onSuccess={handleSuccess}
+          onError={(err) => {
+            showToast('Erro no Pluggy Connect', 'error')
+            setConnectToken(null)
+          }}
+          onClose={() => setConnectToken(null)}
+        />
+      </div>
+    )
+  }
+
   return (
     <div>
-      <button className="sync-btn" onClick={handleSync} disabled={loading}>
+      <button className="sync-btn" onClick={handleStartConnect} disabled={loading}>
         {loading ? (
           <>
             <span className="spinner" />

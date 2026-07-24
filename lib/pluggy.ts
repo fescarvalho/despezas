@@ -9,7 +9,17 @@
  */
 
 import { supabase } from './supabase'
-import { fetchPluggyAccounts, fetchPluggyTransactions } from './pluggyService'
+import { fetchPluggyAccounts, fetchPluggyTransactions, createPluggyConnectToken } from './pluggyService'
+
+export async function getConnectToken(): Promise<{ token?: string; error?: string }> {
+  try {
+    const token = await createPluggyConnectToken()
+    if (!token) return { error: 'Não foi possível gerar o token de conexão' }
+    return { token }
+  } catch (err: any) {
+    return { error: err.message || 'Erro ao gerar token' }
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Types
@@ -75,12 +85,20 @@ const MOCK_TRANSACTIONS: PluggyTransaction[] = [
 // Main sync function
 // ---------------------------------------------------------------------------
 
-export async function syncWithPluggy(): Promise<{ synced: number; error?: string }> {
+export async function syncWithPluggy(itemId: string): Promise<{ synced: number; error?: string }> {
   try {
+    if (!itemId) return { synced: 0, error: 'itemId é obrigatório' }
+
     // 1. Fetch real accounts from Pluggy
-    const accounts = await fetchPluggyAccounts()
+    let accounts;
+    try {
+      accounts = await fetchPluggyAccounts(itemId)
+    } catch (e: any) {
+      throw e
+    }
+
     if (!accounts || accounts.length === 0) {
-      return { synced: 0, error: 'Nenhuma conta encontrada no Pluggy ou falha na autenticação.' }
+      return { synced: 0, error: 'Nenhuma conta encontrada nesta conexão do Pluggy.' }
     }
 
     // 2. Upsert accounts into Supabase

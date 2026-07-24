@@ -33,10 +33,39 @@ export async function getPluggyToken(): Promise<string | null> {
 }
 
 /**
- * Passo 2: Buscar Transações
+ * Passo 2: Criar Connect Token
+ * Esse token é usado pelo Widget no Frontend para autenticar o usuário no banco
+ */
+export async function createPluggyConnectToken(): Promise<string | null> {
+  const token = await getPluggyToken();
+  if (!token) return null;
+
+  try {
+    const response = await fetch(`${PLUGGY_API_URL}/connect_token`, {
+      method: 'POST',
+      headers: {
+        'X-API-KEY': token,
+        'Content-Type': 'application/json',
+      },
+      cache: 'no-store',
+    });
+
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.message || 'Erro ao criar connect token');
+    
+    return data.accessToken;
+  } catch (error) {
+    console.error('Erro ao gerar connect token:', error);
+    return null;
+  }
+}
+
+/**
+ * Passo 3: Buscar Transações
  * Usa o token para buscar as transações da sua conta conectada.
  * @param accountId - O ID da sua conta no Pluggy
  */
+
 export async function fetchPluggyTransactions(accountId: string) {
   const token = await getPluggyToken();
   
@@ -63,23 +92,27 @@ export async function fetchPluggyTransactions(accountId: string) {
 }
 
 /**
- * Passo Extra: Buscar Contas (Para pegar o accountId)
+ * Passo Extra: Buscar Contas de uma conexão (Item) específica
  */
-export async function fetchPluggyAccounts() {
+export async function fetchPluggyAccounts(itemId: string) {
   const token = await getPluggyToken();
   if (!token) return [];
 
   try {
-    const response = await fetch(`${PLUGGY_API_URL}/accounts`, {
+    const response = await fetch(`${PLUGGY_API_URL}/accounts?itemId=${itemId}`, {
       method: 'GET',
       headers: { 'X-API-KEY': token },
       cache: 'no-store',
     });
 
     const data = await response.json();
+    if (!response.ok || data.errorId) {
+      console.warn('Pluggy API Error:', data);
+      throw new Error(data.message || 'Erro ao buscar contas');
+    }
     return data.results; 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Erro ao buscar contas:', error);
-    return [];
+    throw error;
   }
 }
