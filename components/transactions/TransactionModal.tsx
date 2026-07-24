@@ -487,7 +487,7 @@ export function TransactionModal({
 
         {initialData && onDelete ? (
           <div style={{ display: 'flex', gap: 10 }}>
-            <button type="button" className="btn btn-secondary btn-icon" onClick={handleDelete} disabled={deleting || saving} style={{ width: 44, color: 'var(--color-expense)', borderColor: 'var(--color-expense-light)', background: 'var(--color-expense-light)' }}>
+            <button type="button" className="btn btn-secondary btn-icon" onClick={() => handleDelete()} disabled={deleting || saving} style={{ width: 44, color: 'var(--color-expense)', borderColor: 'var(--color-expense-light)', background: 'var(--color-expense-light)' }}>
               {deleting ? '...' : '🗑️'}
             </button>
             <button type="button" className="btn btn-secondary btn-full" onClick={onClose} disabled={saving || deleting}>
