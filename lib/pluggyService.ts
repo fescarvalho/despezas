@@ -74,7 +74,7 @@ export async function fetchPluggyTransactions(accountId: string) {
   }
 
   try {
-    const response = await fetch(`${PLUGGY_API_URL}/transactions?accountId=${accountId}`, {
+    const response = await fetch(`${PLUGGY_API_URL}/v2/transactions?accountId=${accountId}`, {
       method: 'GET',
       headers: {
         'X-API-KEY': token, // Passamos o token no header
@@ -92,6 +92,29 @@ export async function fetchPluggyTransactions(accountId: string) {
   } catch (error) {
     console.error('Erro ao buscar transações:', error);
     return [];
+  }
+}
+
+/**
+ * Passo Extra: Buscar o status do Item (Conexão)
+ */
+export async function fetchPluggyItem(itemId: string) {
+  const token = await getPluggyToken();
+  if (!token) return null;
+
+  try {
+    const response = await fetch(`${PLUGGY_API_URL}/items/${itemId}`, {
+      method: 'GET',
+      headers: { 'X-API-KEY': token },
+      cache: 'no-store',
+    });
+
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.message || 'Erro ao buscar item');
+    return data;
+  } catch (error) {
+    console.error('Erro ao buscar item:', error);
+    return null;
   }
 }
 

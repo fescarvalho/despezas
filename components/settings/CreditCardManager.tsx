@@ -84,10 +84,22 @@ export function CreditCardManager({ cards, onCreate, onUpdate, onDelete }: Credi
     }
   }
 
-  const handleDelete = async (id: string) => {
-    if (confirm('Tem certeza que deseja excluir este cartão?')) {
-      await onDelete(id)
+  const [deleteTarget, setDeleteTarget] = useState<CreditCard | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteTarget) return
+    setIsDeleting(true)
+    try {
+      await onDelete(deleteTarget.id)
+      setDeleteTarget(null)
+    } finally {
+      setIsDeleting(false)
     }
+  }
+
+  const handleDeleteClick = (card: CreditCard) => {
+    setDeleteTarget(card)
   }
 
   return (
@@ -141,7 +153,7 @@ export function CreditCardManager({ cards, onCreate, onUpdate, onDelete }: Credi
                 <button
                   className="btn btn-icon"
                   style={{ background: 'transparent', border: 'none', color: 'var(--color-expense)' }}
-                  onClick={() => handleDelete(card.id)}
+                  onClick={() => handleDeleteClick(card)}
                 >
                   <Trash2 size={16} />
                 </button>
@@ -189,13 +201,32 @@ export function CreditCardManager({ cards, onCreate, onUpdate, onDelete }: Credi
             </div>
           </div>
 
-          <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
+          <div style={{ display: 'flex', gap: 10, marginTop: 24 }}>
             <button type="button" className="btn btn-secondary btn-full" onClick={handleClose}>Cancelar</button>
             <button type="submit" className="btn btn-primary btn-full" disabled={loading}>
-              {loading ? 'Salvando...' : 'Salvar'}
+              {loading ? <span className="spinner" /> : 'Salvar Cartão'}
             </button>
           </div>
         </form>
+      </Modal>
+
+      <Modal isOpen={!!deleteTarget} onClose={() => setDeleteTarget(null)} title="Excluir Cartão">
+        <div style={{ textAlign: 'center', padding: '8px 0 24px' }}>
+          <div style={{ fontSize: 48, marginBottom: 12 }}>💳</div>
+          <p style={{ fontSize: 15, color: 'var(--color-text-primary)', fontWeight: 600, marginBottom: 6 }}>
+            Excluir "{deleteTarget?.name}"?
+          </p>
+          <p style={{ fontSize: 13, color: 'var(--color-text-muted)', lineHeight: 1.5 }}>
+            Esta ação não pode ser desfeita. Transações vinculadas serão excluídas.
+          </p>
+        </div>
+        <div style={{ display: 'flex', gap: 10 }}>
+          <button className="btn btn-secondary btn-full" onClick={() => setDeleteTarget(null)}>Cancelar</button>
+          <button className="btn btn-danger btn-full" onClick={handleDeleteConfirm} disabled={isDeleting}
+            style={{ background: 'var(--color-expense)', color: 'white', border: 'none' }}>
+            {isDeleting ? <><span className="spinner" /> Excluindo...</> : '🗑️ Excluir'}
+          </button>
+        </div>
       </Modal>
     </div>
   )

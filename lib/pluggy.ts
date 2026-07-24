@@ -9,7 +9,7 @@
  */
 
 import { supabase } from './supabase'
-import { fetchPluggyAccounts, fetchPluggyTransactions, createPluggyConnectToken } from './pluggyService'
+import { fetchPluggyAccounts, fetchPluggyTransactions, createPluggyConnectToken, fetchPluggyItem } from './pluggyService'
 
 export async function getConnectToken(): Promise<{ token?: string; error?: string }> {
   try {
@@ -89,6 +89,22 @@ export async function syncWithPluggy(itemId: string): Promise<{ synced: number; 
   try {
     if (!itemId) return { synced: 0, error: 'itemId é obrigatório' }
 
+    // 0. Wait for the item to finish updating (Pluggy syncs in the background)
+    let isReady = false;
+    for (let i = 0; i < 15; i++) {
+      const item = await fetchPluggyItem(itemId);
+      if (item && item.executionStatus !== 'UPDATING') {
+        isReady = true;
+        break;
+      }
+      // wait 2 seconds before checking again
+      await new Promise(resolve => setTimeout(resolve, 2000));
+    }
+
+    if (!isReady) {
+      return { synced: 0, error: 'A conexão demorou muito para processar. Tente sincronizar novamente mais tarde.' }
+    }
+
     // 1. Fetch real accounts from Pluggy
     let accounts;
     try {
@@ -103,17 +119,37 @@ export async function syncWithPluggy(itemId: string): Promise<{ synced: number; 
 
     // 2. Upsert accounts into Supabase
     for (const acc of accounts) {
-      const { error } = await supabase.from('accounts').upsert(
-        {
-          id: acc.id,
-          name: acc.name,
-          type: acc.type === 'SAVINGS' ? 'savings' : 'checking',
-          balance: acc.balance,
-          icon: '🏦',
-        },
-        { onConflict: 'id' }
-      )
-      if (error) console.warn('Error upserting account:', error.message)
+      if (acc.type === 'CREDIT') {
+        const dueDateStr = acc.creditData?.balanceDueDate || '2026-01-05'
+        const dueDay = parseInt(dueDateStr.split('-')[2])
+        const closingDay = dueDay > 7 ? dueDay - 7 : 28
+
+        const { error } = await supabase.from('credit_cards').upsert(
+          {
+            id: acc.id,
+            name: acc.name || 'Cartão de Crédito',
+            limit_amount: acc.creditData?.creditLimit || 0,
+            closing_day: closingDay,
+            due_day: dueDay,
+            brand_icon: (acc.creditData?.brand || 'mastercard').toLowerCase(),
+            color: '#8B5CF6',
+          },
+          { onConflict: 'id' }
+        )
+        if (error) console.warn('Error upserting credit card:', error.message)
+      } else {
+        const { error } = await supabase.from('accounts').upsert(
+          {
+            id: acc.id,
+            name: acc.name,
+            type: acc.type === 'SAVINGS' ? 'savings' : 'checking',
+            balance: acc.balance,
+            icon: '🏦',
+          },
+          { onConflict: 'id' }
+        )
+        if (error) console.warn('Error upserting account:', error.message)
+      }
     }
 
     // 3. Fetch transactions for each account and upsert
@@ -122,10 +158,12 @@ export async function syncWithPluggy(itemId: string): Promise<{ synced: number; 
       const transactions = await fetchPluggyTransactions(acc.id)
       
       for (const tx of transactions) {
+        const isCredit = acc.type === 'CREDIT'
         const { error } = await supabase.from('transactions').upsert(
           {
             id: tx.id,
-            account_id: tx.accountId,
+            account_id: isCredit ? null : tx.accountId,
+            card_id: isCredit ? tx.accountId : null,
             amount: Math.abs(tx.amount), // Amount might be negative for expenses
             date: tx.date.split('T')[0], // ensure YYYY-MM-DD
             description: tx.description,
