@@ -61,6 +61,10 @@ export function useTransactions(monthYear: MonthYear, search = '', typeFilter: s
         if (orParts.length > 0) query = query.or(orParts.join(','))
       }
 
+      if (typeFilter.length > 0) {
+        query = query.in('type', typeFilter)
+      }
+
       const { data, error: err } = await query
       if (err) throw err
 

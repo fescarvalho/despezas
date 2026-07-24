@@ -251,33 +251,87 @@ export function TransactionModal({
 
         {(accounts.length > 0 || cards.length > 0) && (
           <div className="form-group">
-            <label className="form-label" htmlFor="tx-source">Forma de Pagamento / Conta</label>
-            <select
-              id="tx-source"
-              className="form-select"
-              value={sourceId}
-              onChange={(e) => setSourceId(e.target.value)}
-            >
-              <option value="">Nenhuma (Solta)</option>
-              {accounts.length > 0 && (
-                <optgroup label="Contas Bancárias">
-                  {accounts.map((acc) => (
-                    <option key={`acc:${acc.id}`} value={`acc:${acc.id}`}>
-                      {acc.icon} {acc.name} — {formatCurrency(acc.balance)}
-                    </option>
-                  ))}
-                </optgroup>
-              )}
-              {cards.length > 0 && (
-                <optgroup label="Cartões de Crédito">
-                  {cards.map((c) => (
-                    <option key={`card:${c.id}`} value={`card:${c.id}`}>
-                      💳 {c.name} — Limite: {formatCurrency(c.limit_amount)}
-                    </option>
-                  ))}
-                </optgroup>
-              )}
-            </select>
+            <label className="form-label">Forma de Pagamento / Conta</label>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: 10, marginTop: 8 }}>
+              <div
+                onClick={() => setSourceId('')}
+                style={{
+                  padding: '12px 10px',
+                  borderRadius: 'var(--radius-md)',
+                  border: `1.5px solid ${sourceId === '' ? 'var(--color-accent)' : 'var(--color-border)'}`,
+                  background: sourceId === '' ? 'var(--color-accent-light)' : 'var(--color-surface)',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 4,
+                  transition: 'all 0.2s',
+                  textAlign: 'center'
+                }}
+              >
+                <div style={{ fontSize: 20 }}>💰</div>
+                <div style={{ fontSize: 13, fontWeight: 600, color: sourceId === '' ? 'var(--color-accent)' : 'var(--color-text-primary)' }}>Nenhuma</div>
+              </div>
+              
+              {accounts.map((acc) => {
+                const id = `acc:${acc.id}`
+                const isActive = sourceId === id
+                return (
+                  <div
+                    key={id}
+                    onClick={() => setSourceId(id)}
+                    style={{
+                      padding: '12px 10px',
+                      borderRadius: 'var(--radius-md)',
+                      border: `1.5px solid ${isActive ? 'var(--color-accent)' : 'var(--color-border)'}`,
+                      background: isActive ? 'var(--color-accent-light)' : 'var(--color-surface)',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 4,
+                      transition: 'all 0.2s',
+                      textAlign: 'center'
+                    }}
+                  >
+                    <div style={{ fontSize: 20 }}>{acc.icon}</div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: isActive ? 'var(--color-accent)' : 'var(--color-text-primary)' }}>{acc.name}</div>
+                    <div style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>{formatCurrency(acc.balance)}</div>
+                  </div>
+                )
+              })}
+
+              {cards.map((c) => {
+                const id = `card:${c.id}`
+                const isActive = sourceId === id
+                return (
+                  <div
+                    key={id}
+                    onClick={() => setSourceId(id)}
+                    style={{
+                      padding: '12px 10px',
+                      borderRadius: 'var(--radius-md)',
+                      border: `1.5px solid ${isActive ? 'var(--color-accent)' : 'var(--color-border)'}`,
+                      background: isActive ? 'var(--color-accent-light)' : 'var(--color-surface)',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 4,
+                      transition: 'all 0.2s',
+                      textAlign: 'center'
+                    }}
+                  >
+                    <div style={{ fontSize: 20 }}>💳</div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: isActive ? 'var(--color-accent)' : 'var(--color-text-primary)' }}>{c.name}</div>
+                    <div style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>Limite {formatCurrency(c.limit_amount)}</div>
+                  </div>
+                )
+              })}
+            </div>
           </div>
         )}
 

@@ -19,13 +19,17 @@ export function useCategories() {
       let dataToSet = data || []
       if (dataToSet.length === 0) {
         const defaultCats = [
-          { name: 'Alimentação', icon: '🍔', type: 'expense', color: '#F59E0B' },
-          { name: 'Transporte', icon: '🚗', type: 'expense', color: '#3B82F6' },
-          { name: 'Moradia', icon: '🏠', type: 'expense', color: '#8B5CF6' },
-          { name: 'Lazer', icon: '🎉', type: 'expense', color: '#EC4899' },
-          { name: 'Saúde', icon: '🏥', type: 'expense', color: '#10B981' },
-          { name: 'Salário', icon: '💰', type: 'income', color: '#10B981' },
-          { name: 'Rendimentos', icon: '📈', type: 'income', color: '#3B82F6' },
+          { id: crypto.randomUUID(), name: 'Alimentação', icon: '🍔', type: 'expense', color: '#F59E0B' },
+          { id: crypto.randomUUID(), name: 'Transporte', icon: '🚗', type: 'expense', color: '#3B82F6' },
+          { id: crypto.randomUUID(), name: 'Moradia', icon: '🏠', type: 'expense', color: '#8B5CF6' },
+          { id: crypto.randomUUID(), name: 'Lazer', icon: '🎉', type: 'expense', color: '#EC4899' },
+          { id: crypto.randomUUID(), name: 'Saúde', icon: '🏥', type: 'expense', color: '#10B981' },
+          { id: crypto.randomUUID(), name: 'Educação', icon: '📚', type: 'expense', color: '#6366F1' },
+          { id: crypto.randomUUID(), name: 'Compras', icon: '🛍️', type: 'expense', color: '#F43F5E' },
+          { id: crypto.randomUUID(), name: 'Assinaturas', icon: '📺', type: 'expense', color: '#8B5CF6' },
+          { id: crypto.randomUUID(), name: 'Salário', icon: '💰', type: 'income', color: '#10B981' },
+          { id: crypto.randomUUID(), name: 'Rendimentos', icon: '📈', type: 'income', color: '#3B82F6' },
+          { id: crypto.randomUUID(), name: 'Vendas', icon: '🏷️', type: 'income', color: '#F59E0B' },
         ]
         const { data: insertedData, error: insertErr } = await supabase.from('categories').insert(defaultCats).select()
         if (!insertErr && insertedData) {

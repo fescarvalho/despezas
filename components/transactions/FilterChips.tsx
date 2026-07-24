@@ -27,15 +27,17 @@ export function FilterChips({ search, onSearchChange, activeTypes, onTypeToggle 
           onChange={(e) => onSearchChange(e.target.value)}
         />
       </div>
-      {CHIP_FILTERS.map(({ id, label }) => (
-        <button
-          key={id}
-          className={`chip ${activeTypes.includes(id) ? 'active' : ''}`}
-          onClick={() => onTypeToggle(id)}
-        >
-          {label}
-        </button>
-      ))}
+      <div style={{ display: 'flex', gap: '8px', flexWrap: 'nowrap' }}>
+        {CHIP_FILTERS.map(({ id, label }) => (
+          <button
+            key={id}
+            className={`chip ${activeTypes.includes(id) ? 'active' : ''}`}
+            onClick={() => onTypeToggle(id)}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
     </div>
   )
 }
