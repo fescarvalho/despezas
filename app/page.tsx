@@ -65,17 +65,17 @@ export default function DashboardPage() {
               />
               <DashboardCard
                 label="Despesas"
-                value={monthExpenses}
+                value={monthExpenses + totalOpenInvoices}
                 icon="📉"
                 variant="expense"
                 sub="No mês"
               />
               <DashboardCard
-                label="Faturas"
-                value={totalOpenInvoices}
-                icon="💳"
-                variant="invoice"
-                sub="Total em aberto"
+                label="Saldo Mensal"
+                value={monthIncome - (monthExpenses + totalOpenInvoices)}
+                icon="⚖️"
+                variant={monthIncome - (monthExpenses + totalOpenInvoices) >= 0 ? 'income' : 'expense'}
+                sub="Receitas - Despesas"
               />
             </>
           )}
@@ -121,11 +121,11 @@ export default function DashboardPage() {
             <div>
               <div style={{ fontSize: 13, opacity: 0.8, marginBottom: 4 }}>💡 Balanço do Mês</div>
               <div style={{ fontSize: 28, fontWeight: 800, letterSpacing: -1 }}>
-                {monthIncome - monthExpenses >= 0 ? '+' : ''}
-                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(monthIncome - monthExpenses)}
+                {monthIncome - (monthExpenses + totalOpenInvoices) >= 0 ? '+' : ''}
+                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(monthIncome - (monthExpenses + totalOpenInvoices))}
               </div>
               <div style={{ fontSize: 13, opacity: 0.7, marginTop: 2 }}>
-                {monthIncome - monthExpenses >= 0
+                {monthIncome - (monthExpenses + totalOpenInvoices) >= 0
                   ? '🎉 Você está economizando!'
                   : '⚠️ Despesas acima das receitas'}
               </div>
@@ -140,7 +140,7 @@ export default function DashboardPage() {
               <div style={{ textAlign: 'center' }}>
                 <div style={{ fontSize: 12, opacity: 0.7 }}>Despesas</div>
                 <div style={{ fontSize: 18, fontWeight: 700 }}>
-                  {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(monthExpenses)}
+                  {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(monthExpenses + totalOpenInvoices)}
                 </div>
               </div>
             </div>
