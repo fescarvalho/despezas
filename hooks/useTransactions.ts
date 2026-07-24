@@ -118,7 +118,7 @@ export function useTransactions(monthYear: MonthYear, search = '', typeFilter: s
     // Cria nova invoice
     const { data: created, error } = await supabase
       .from('invoices')
-      .insert({ card_id: cardId, month, year, status: 'open', total_amount: 0 })
+      .insert({ id: crypto.randomUUID(), card_id: cardId, month, year, status: 'open', total_amount: 0 })
       .select('id')
       .single()
 
@@ -175,6 +175,7 @@ export function useTransactions(monthYear: MonthYear, search = '', typeFilter: s
         }
 
         payloads.push({
+          id: crypto.randomUUID(),
           description: payload.installment_total === 1
             ? payload.description
             : `${payload.description} (${i + 1}/${totalOccurrences})`,
@@ -198,6 +199,7 @@ export function useTransactions(monthYear: MonthYear, search = '', typeFilter: s
       }
 
       payloads.push({
+        id: crypto.randomUUID(),
         description: payload.description,
         amount: payload.amount,
         date: payload.date,
