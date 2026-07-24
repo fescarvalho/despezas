@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react'
 import { useMonthSelector } from '@/hooks/useMonthSelector'
-import { useTransactions, SEED_TRANSACTIONS } from '@/hooks/useTransactions'
+import { useTransactions } from '@/hooks/useTransactions'
 import { useCategories } from '@/hooks/useCategories'
 import { MonthSelector } from '@/components/dashboard/MonthSelector'
 import { BarChart } from '@/components/reports/BarChart'
@@ -21,7 +21,7 @@ export default function ReportsPage() {
     const months = Array.from({ length: 6 }, (_, i) => addMonths(monthYear.month, monthYear.year, -(5 - i)))
     return months.map(({ month, year }) => {
       const prefix = `${year}-${String(month).padStart(2, '0')}`
-      const txs = SEED_TRANSACTIONS.filter((t) => t.date.startsWith(prefix))
+      const txs = transactions.filter((t) => t.date.startsWith(prefix))
       return {
         label: getMonthName(month).substring(0, 3),
         expense: txs.filter((t) => t.type === 'expense').reduce((s, t) => s + t.amount, 0),

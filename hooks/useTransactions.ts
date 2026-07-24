@@ -90,12 +90,8 @@ export function useTransactions(monthYear: MonthYear, search = '', typeFilter: s
 
     const { data, error: err } = await supabase.from('transactions').insert(payloads).select()
     if (err) {
-      console.warn('Supabase insert failed, using local state fallback', err)
-      if (!localMockTransactions) localMockTransactions = [...SEED_TRANSACTIONS] as Transaction[]
-      const newTxs = payloads.map((p, i) => ({ ...p, id: `tx-new-${Date.now()}-${i}` })) as Transaction[]
-      localMockTransactions.push(...newTxs)
-      setTransactions(filterSeed(monthYear, search, typeFilter, localMockTransactions))
-      return payloads
+      console.error('Supabase insert failed:', err)
+      return []
     }
     await fetchTransactions()
     return data
