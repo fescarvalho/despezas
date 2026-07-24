@@ -191,7 +191,7 @@ export function useTransactions(monthYear: MonthYear, search = '', typeFilter: s
           card_id: payload.card_id,
           invoice_id: invoiceId,
           is_installment: payload.is_installment,
-          installment_total: payload.installment_total,
+          installment_info: payload.installment_total > 1 ? { current: i + 1, total: totalOccurrences } : null,
         })
       }
     } else {
