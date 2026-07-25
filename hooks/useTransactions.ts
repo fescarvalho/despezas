@@ -98,7 +98,26 @@ export function useTransactions(monthYear: MonthYear, search = '', typeFilter: s
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [monthYear.month, monthYear.year, search, typeFilter.join(','), sourceFilter.join(','), cards.map(c => c.id + c.closing_day).join(',')])
 
-  useEffect(() => { fetchTransactions() }, [fetchTransactions])
+  useEffect(() => {
+    fetchTransactions()
+
+    // Supabase Realtime: rebusca automaticamente quando a tabela muda
+    // (útil após sincronização com Pluggy ou qualquer atualização externa)
+    const channel = supabase
+      .channel('transactions-realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'transactions' },
+        () => {
+          fetchTransactions()
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [fetchTransactions])
 
   const monthIncome = transactions.filter((t) => t.type === 'income').reduce((s, t) => s + t.amount, 0)
   const monthExpenses = transactions.filter((t) => t.type === 'expense').reduce((s, t) => s + t.amount, 0)

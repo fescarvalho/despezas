@@ -18,8 +18,8 @@ import { TrendingUp, Wallet, Receipt, CreditCard } from 'lucide-react'
 export default function DashboardPage() {
   const { monthYear, goNext, goPrev } = useMonthSelector()
   const { totalBalance, loading: accsLoading } = useAccounts()
-  const { transactions, monthIncome, monthExpenses, loading: txLoading } = useTransactions(monthYear)
   const { totalOpenInvoices, loading: cardsLoading, cards } = useCreditCards()
+  const { transactions, monthIncome, monthExpenses, loading: txLoading } = useTransactions(monthYear, '', [], [], cards)
   const { categories } = useCategories()
 
   const recentTransactions = useMemo(() => [...transactions].slice(0, 5), [transactions])
