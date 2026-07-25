@@ -387,7 +387,7 @@ export function TransactionModal({
         )}
 
         {/* Installment toggle (only for new transactions) */}
-        {type === 'expense' && !initialData && (
+        {!initialData && (
           <div style={{
             padding: '12px 14px',
             border: `1.5px solid ${isInstallment ? 'var(--color-accent)' : 'var(--color-border)'}`,
