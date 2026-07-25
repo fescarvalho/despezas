@@ -57,6 +57,17 @@ export function useAccounts() {
   }
 
   const deleteAccount = async (id: string) => {
+    // Remove todas as transações vinculadas à conta antes de excluí-la
+    const { error: txErr } = await supabase
+      .from('transactions')
+      .delete()
+      .eq('account_id', id)
+
+    if (txErr) {
+      console.error('Erro ao excluir transações da conta:', txErr)
+      return
+    }
+
     const { error: err } = await supabase.from('accounts').delete().eq('id', id)
     if (err) {
       console.error('Supabase delete failed:', err)
