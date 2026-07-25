@@ -9,6 +9,7 @@ import { useCategories } from '@/hooks/useCategories'
 import { MonthSelector } from '@/components/dashboard/MonthSelector'
 import { DashboardCard } from '@/components/dashboard/DashboardCard'
 import { DonutChart } from '@/components/dashboard/DonutChart'
+import { SyncBalanceButton } from '@/components/dashboard/SyncBalanceButton'
 import { TransactionItem } from '@/components/transactions/TransactionItem'
 import { SkeletonCard, SkeletonList } from '@/components/ui/Skeleton'
 import { EmptyState } from '@/components/ui/EmptyState'
@@ -17,7 +18,7 @@ import { TrendingUp, Wallet, Receipt, CreditCard } from 'lucide-react'
 
 export default function DashboardPage() {
   const { monthYear, goNext, goPrev } = useMonthSelector()
-  const { totalBalance, loading: accsLoading } = useAccounts()
+  const { totalBalance, accounts, loading: accsLoading, refetch: refetchAccounts } = useAccounts()
   const { totalOpenInvoices, loading: cardsLoading, cards } = useCreditCards()
   const { transactions, monthIncome, monthExpenses, loading: txLoading } = useTransactions(monthYear, '', [], [], cards)
   const { categories } = useCategories()
@@ -33,12 +34,18 @@ export default function DashboardPage() {
             <h1 className="page-title">Visão Geral</h1>
             <p className="page-subtitle">Bem-vindo de volta! 👋</p>
           </div>
-          <MonthSelector
-            month={monthYear.month}
-            year={monthYear.year}
-            onPrev={goPrev}
-            onNext={goNext}
-          />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+            <SyncBalanceButton
+              accounts={accounts}
+              onSynced={refetchAccounts}
+            />
+            <MonthSelector
+              month={monthYear.month}
+              year={monthYear.year}
+              onPrev={goPrev}
+              onNext={goNext}
+            />
+          </div>
         </div>
 
         {/* Summary cards */}

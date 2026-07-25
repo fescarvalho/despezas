@@ -33,14 +33,14 @@ export function useTransactions(monthYear: MonthYear, search = '', typeFilter: s
       const selectedY = monthYear.year
 
       // Datas do mês selecionado
-      const lastDay    = new Date(selectedY, selectedM, 0).getDate()
+      const lastDay = new Date(selectedY, selectedM, 0).getDate()
       const startDateStr = `${selectedY}-${String(selectedM).padStart(2, '0')}-01`
-      const endDateStr   = `${selectedY}-${String(selectedM).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`
+      const endDateStr = `${selectedY}-${String(selectedM).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`
 
       // Buscamos do mês anterior ao mês atual para capturar compras de cartão
       // feitas no mês anterior mas após o fechamento (que pertencem a esta fatura)
       const prevMonth = selectedM === 1 ? 12 : selectedM - 1
-      const prevYear  = selectedM === 1 ? selectedY - 1 : selectedY
+      const prevYear = selectedM === 1 ? selectedY - 1 : selectedY
       const fetchStart = `${prevYear}-${String(prevMonth).padStart(2, '0')}-01`
 
       let query = supabase
@@ -53,10 +53,10 @@ export function useTransactions(monthYear: MonthYear, search = '', typeFilter: s
       if (search) query = query.ilike('description', `%${search}%`)
 
       if (sourceFilter.length > 0) {
-        const accFilters  = sourceFilter.filter(s => s.startsWith('acc:')).map(s => s.replace('acc:', ''))
+        const accFilters = sourceFilter.filter(s => s.startsWith('acc:')).map(s => s.replace('acc:', ''))
         const cardFilters = sourceFilter.filter(s => s.startsWith('card:')).map(s => s.replace('card:', ''))
         const orParts: string[] = []
-        if (accFilters.length  > 0) orParts.push(`account_id.in.(${accFilters.join(',')})`)
+        if (accFilters.length > 0) orParts.push(`account_id.in.(${accFilters.join(',')})`)
         if (cardFilters.length > 0) orParts.push(`card_id.in.(${cardFilters.join(',')})`)
         if (orParts.length > 0) query = query.or(orParts.join(','))
       }
@@ -95,7 +95,7 @@ export function useTransactions(monthYear: MonthYear, search = '', typeFilter: s
     } finally {
       setLoading(false)
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [monthYear.month, monthYear.year, search, typeFilter.join(','), sourceFilter.join(','), cards.map(c => c.id + c.closing_day).join(',')])
 
   useEffect(() => {
@@ -335,7 +335,7 @@ export function useTransactions(monthYear: MonthYear, search = '', typeFilter: s
 
     const { error: err } = await supabase.from('transactions').upsert(upsertPayloads)
     if (err) throw err
-    
+
     await fetchTransactions()
   }
 
