@@ -194,7 +194,7 @@ function DeleteConfirmModal({ account, isOpen, onClose, onConfirm, deleting }: {
           Excluir &ldquo;{account.name}&rdquo;?
         </p>
         <p style={{ fontSize: 13, color: 'var(--color-text-muted)', lineHeight: 1.5 }}>
-          Esta ação não pode ser desfeita. As transações vinculadas a esta conta não serão excluídas.
+          Atenção: Ao excluir esta conta, todo o histórico de movimentações vinculadas a ela também será apagado permanentemente.
         </p>
       </div>
       <div style={{ display: 'flex', gap: 10 }}>

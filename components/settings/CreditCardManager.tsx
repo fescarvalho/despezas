@@ -217,7 +217,7 @@ export function CreditCardManager({ cards, onCreate, onUpdate, onDelete }: Credi
             Excluir "{deleteTarget?.name}"?
           </p>
           <p style={{ fontSize: 13, color: 'var(--color-text-muted)', lineHeight: 1.5 }}>
-            Esta ação não pode ser desfeita. Transações vinculadas serão excluídas.
+            Atenção: Ao excluir este cartão, todo o histórico de movimentações vinculadas a ele também será apagado permanentemente.
           </p>
         </div>
         <div style={{ display: 'flex', gap: 10 }}>

@@ -173,3 +173,29 @@ export async function fetchPluggyAccounts(itemId: string) {
     throw error;
   }
 }
+
+/**
+ * Buscar Taxonomia de Categorias da Pluggy
+ */
+export async function fetchPluggyCategories() {
+  const token = await getPluggyToken();
+  if (!token) return [];
+
+  try {
+    const response = await fetch(`${PLUGGY_API_URL}/categories`, {
+      method: 'GET',
+      headers: { 'X-API-KEY': token, 'Accept': 'application/json' },
+      cache: 'no-store',
+    });
+
+    const data = await response.json();
+    if (!response.ok || data.errorId) {
+      console.warn('Pluggy API Error on categories:', data);
+      return [];
+    }
+    return data.results || [];
+  } catch (error) {
+    console.error('Erro ao buscar categorias do Pluggy:', error);
+    return [];
+  }
+}

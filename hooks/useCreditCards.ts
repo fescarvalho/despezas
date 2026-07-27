@@ -51,6 +51,13 @@ export function useCreditCards() {
   }
 
   const deleteCard = async (id: string) => {
+    // Exclusão programática por segurança (fallback)
+    const { error: txErr } = await supabase.from('transactions').delete().eq('card_id', id)
+    if (txErr) {
+      console.error('Erro ao excluir transações do cartão:', txErr)
+      // Podemos optar por não interromper ou exibir toast, mas vamos seguir
+    }
+
     const { error: err } = await supabase.from('credit_cards').delete().eq('id', id)
     if (err) {
       console.error('Supabase delete failed:', err)

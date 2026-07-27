@@ -9,7 +9,7 @@
  */
 
 import { supabase } from './supabase'
-import { fetchPluggyAccounts, fetchPluggyTransactions, createPluggyConnectToken, fetchPluggyItem, fetchPluggyLoans } from './pluggyService'
+import { fetchPluggyAccounts, fetchPluggyTransactions, createPluggyConnectToken, fetchPluggyItem, fetchPluggyLoans, fetchPluggyCategories } from './pluggyService'
 
 export async function getConnectToken(): Promise<{ token?: string; error?: string }> {
   try {
@@ -40,6 +40,7 @@ interface PluggyTransaction {
   description: string
   type: 'CREDIT' | 'DEBIT'
   category?: string
+  categoryId?: string
 }
 
 // ---------------------------------------------------------------------------
@@ -152,6 +153,11 @@ export async function syncWithPluggy(itemId: string): Promise<{ synced: number; 
       }
     }
 
+    // 2.5 Fetch categories
+    const pluggyCategories = await fetchPluggyCategories()
+    const { data: localCategoriesData } = await supabase.from('categories').select('*')
+    const localCategories = localCategoriesData || []
+
     // 3. Fetch transactions for each account and upsert
     let synced = 0
     for (const acc of accounts) {
@@ -159,6 +165,40 @@ export async function syncWithPluggy(itemId: string): Promise<{ synced: number; 
       
       for (const tx of transactions) {
         const isCredit = acc.type === 'CREDIT'
+        
+        // O app tem foco apenas em despesas. Ignoramos entradas financeiras (CREDIT) em contas bancárias.
+        if (!isCredit && tx.type === 'CREDIT') {
+          continue
+        }
+
+        let localCategoryId: string | null = null
+
+        if (tx.categoryId) {
+          const existingCat = localCategories.find(c => c.pluggy_category_id === tx.categoryId)
+          if (existingCat) {
+            localCategoryId = existingCat.id
+          } else {
+            const pCat = pluggyCategories.find((c: any) => c.id === tx.categoryId)
+            const categoryName = pCat?.descriptionTranslated || pCat?.description || tx.category || 'Outros'
+            const categoryType = tx.type === 'CREDIT' ? 'income' : 'expense'
+            
+            const { data: newCat, error: catError } = await supabase.from('categories').insert({
+              name: categoryName,
+              type: categoryType,
+              color: '#8B5CF6',
+              icon: '🏷️',
+              pluggy_category_id: tx.categoryId
+            }).select().single()
+
+            if (!catError && newCat) {
+              localCategoryId = newCat.id
+              localCategories.push(newCat)
+            } else if (catError) {
+              console.warn('Error creating category:', catError.message)
+            }
+          }
+        }
+
         const { error } = await supabase.from('transactions').upsert(
           {
             id: tx.id,
@@ -169,7 +209,7 @@ export async function syncWithPluggy(itemId: string): Promise<{ synced: number; 
             description: tx.description,
             type: tx.type === 'CREDIT' ? 'income' : 'expense',
             is_installment: false,
-            category_id: null,
+            category_id: localCategoryId,
           },
           { onConflict: 'id' }
         )

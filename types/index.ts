@@ -56,6 +56,7 @@ export interface Category {
   icon: string
   type: CategoryType
   budget?: number
+  pluggy_category_id?: string | null
   created_at?: string
 }
 
