@@ -72,17 +72,29 @@ export function useCategories() {
   useEffect(() => { fetchCategories() }, [fetchCategories])
 
   const createCategory = async (payload: Omit<Category, 'id' | 'created_at'>) => {
-    const { data, error: err } = await supabase.from('categories').insert(payload).select().single()
-    if (err) throw err
-    setCategories((prev) => [...prev, data])
-    return data
+    const fullPayload = {
+      id: crypto.randomUUID(),
+      ...payload
+    }
+    const { data, error: err } = await supabase.from('categories').insert([fullPayload]).select()
+    if (err) {
+      console.error('Supabase createCategory error:', err)
+      throw err
+    }
+    const newCategory = data?.[0] || fullPayload as Category
+    setCategories((prev) => [...prev, newCategory])
+    return newCategory
   }
 
   const updateCategory = async (id: string, payload: Partial<Category>) => {
-    const { data, error: err } = await supabase.from('categories').update(payload).eq('id', id).select().single()
-    if (err) throw err
-    setCategories((prev) => prev.map((c) => (c.id === id ? data : c)))
-    return data
+    const { data, error: err } = await supabase.from('categories').update(payload).eq('id', id).select()
+    if (err) {
+      console.error('Supabase updateCategory error:', err)
+      throw err
+    }
+    const updatedCategory = data?.[0] || { id, ...payload } as Category
+    setCategories((prev) => prev.map((c) => (c.id === id ? { ...c, ...updatedCategory } : c)))
+    return updatedCategory
   }
 
   const deleteCategory = async (id: string) => {

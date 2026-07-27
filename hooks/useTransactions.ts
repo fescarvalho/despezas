@@ -269,24 +269,32 @@ export function useTransactions(monthYear: MonthYear, search = '', typeFilter: s
   }
 
   const updateTransaction = async (id: string, payload: any, scope: 'single' | 'future' | 'all' = 'single', originalTx?: Transaction) => {
-    const dbPayload = { ...payload }
-    delete dbPayload.is_installment
-    delete dbPayload.installment_total
-    delete dbPayload.frequency
-    delete dbPayload.is_value_per_installment
+    const cleanPayload: Record<string, any> = {}
+    if (payload.description !== undefined) cleanPayload.description = payload.description
+    if (payload.amount !== undefined) cleanPayload.amount = payload.amount
+    if (payload.date !== undefined) cleanPayload.date = payload.date
+    if (payload.type !== undefined) cleanPayload.type = payload.type
+    if (payload.category_id !== undefined) cleanPayload.category_id = payload.category_id || null
+    if (payload.account_id !== undefined) cleanPayload.account_id = payload.account_id || null
+    if (payload.card_id !== undefined) cleanPayload.card_id = payload.card_id || null
+    if (payload.is_installment !== undefined) cleanPayload.is_installment = payload.is_installment
 
-    const selectedCard = payload.card_id ? cards.find((c) => c.id === payload.card_id) : null
+    const cardId = cleanPayload.card_id !== undefined ? cleanPayload.card_id : originalTx?.card_id
+    const selectedCard = cardId ? cards.find((c) => c.id === cardId) : null
     const closingDay = selectedCard?.closing_day ?? null
 
     if (scope === 'single' || !originalTx?.created_at) {
-      let invoiceId: string | null = null
-      if (payload.card_id && closingDay !== null) {
-        const invoiceMonth = getInvoiceMonth(payload.date, closingDay)
-        invoiceId = await resolveInvoiceId(payload.card_id, invoiceMonth.month, invoiceMonth.year)
+      let invoiceId: string | null = originalTx?.invoice_id || null
+      if (cardId && closingDay !== null) {
+        const txDate = cleanPayload.date || originalTx?.date || new Date().toISOString().split('T')[0]
+        const invoiceMonth = getInvoiceMonth(txDate, closingDay)
+        invoiceId = await resolveInvoiceId(cardId, invoiceMonth.month, invoiceMonth.year)
+      } else if (!cardId) {
+        invoiceId = null
       }
-      dbPayload.invoice_id = invoiceId
+      cleanPayload.invoice_id = invoiceId
 
-      const { error: err } = await supabase.from('transactions').update(dbPayload).eq('id', id)
+      const { error: err } = await supabase.from('transactions').update(cleanPayload).eq('id', id)
       if (err) {
         console.error('Supabase update failed:', err)
         throw err
@@ -304,30 +312,30 @@ export function useTransactions(monthYear: MonthYear, search = '', typeFilter: s
     if (fetchErr || !targets) throw fetchErr
 
     const upsertPayloads = await Promise.all(targets.map(async (t) => {
-      let newDescription = dbPayload.description
+      let newDescription = cleanPayload.description || t.description
       if (t.installment_info) {
-        newDescription = `${dbPayload.description} (${t.installment_info.current}/${t.installment_info.total})`
+        const baseName = cleanPayload.description || t.description.replace(/\s*\(\d+\/\d+\)$/, '')
+        newDescription = `${baseName} (${t.installment_info.current}/${t.installment_info.total})`
       } else {
         const match = t.description.match(/\(\d+\/\d+\)$/)
         if (match) {
-          newDescription = `${dbPayload.description} ${match[0]}`
+          const baseName = cleanPayload.description || t.description.replace(/\s*\(\d+\/\d+\)$/, '')
+          newDescription = `${baseName} ${match[0]}`
         }
       }
 
-      let invoiceId: string | null = null
-      // Use original date of the target transaction, not the payload date (payload date might just be the one the user selected in the modal)
-      // Actually, if the user changed the date, how do we apply it to all? 
-      // Usually date changes aren't applied to all installments, only the base description/amount/card.
-      // We will keep the target's original date.
-      if (payload.card_id && closingDay !== null) {
+      let invoiceId: string | null = t.invoice_id || null
+      if (cardId && closingDay !== null) {
         const invoiceMonth = getInvoiceMonth(t.date, closingDay)
-        invoiceId = await resolveInvoiceId(payload.card_id, invoiceMonth.month, invoiceMonth.year)
+        invoiceId = await resolveInvoiceId(cardId, invoiceMonth.month, invoiceMonth.year)
+      } else if (!cardId) {
+        invoiceId = null
       }
 
       return {
         ...t,
-        ...dbPayload,
-        date: t.date, // keep original date
+        ...cleanPayload,
+        date: t.date, // keep original date for each installment
         description: newDescription,
         invoice_id: invoiceId
       }

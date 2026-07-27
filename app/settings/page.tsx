@@ -14,7 +14,7 @@ import { ToastProvider } from '@/components/ui/Toast'
 import { Wifi, Tag, Info, Shield, Palette, Landmark } from 'lucide-react'
 
 function SettingsContent() {
-  const { categories, createCategory, deleteCategory } = useCategories()
+  const { categories, createCategory, updateCategory, deleteCategory } = useCategories()
   const { accounts, createAccount, updateAccount, deleteAccount } = useAccounts()
   const { cards, createCard, updateCard, deleteCard } = useCreditCards()
   const { loans, deleteLoan } = useLoans()
@@ -146,6 +146,7 @@ function SettingsContent() {
           <CategoryManager
             categories={categories}
             onCreate={async (data) => { await createCategory(data) }}
+            onUpdate={async (id, data) => { await updateCategory(id, data) }}
             onDelete={async (id) => { await deleteCategory(id) }}
           />
         </div>

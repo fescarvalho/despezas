@@ -26,7 +26,7 @@ function TransactionsContent() {
   const [editingTx, setEditingTx] = useState<Transaction | null>(null)
   const { showToast } = useToast()
 
-  const { categories } = useCategories()
+  const { categories, createCategory } = useCategories()
   const { accounts } = useAccounts()
   const { cards } = useCreditCards()
   const { transactions, loading, monthIncome, monthExpenses, createTransaction, updateTransaction, deleteTransaction } = useTransactions(monthYear, search, typeFilter, sourceFilter, cards)
@@ -190,6 +190,7 @@ function TransactionsContent() {
         accounts={accounts}
         cards={cards}
         initialData={editingTx}
+        onCreateCategory={createCategory}
       />
     </div>
   )

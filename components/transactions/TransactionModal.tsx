@@ -1,9 +1,13 @@
 'use client'
 
 import { useState, useMemo, useEffect } from 'react'
+import { Plus } from 'lucide-react'
 import { Modal } from '@/components/ui/Modal'
 import { formatCurrency } from '@/lib/formatters'
 import type { Category, Account, CreditCard, Transaction } from '@/types'
+
+const PRESET_COLORS = ['#10B981', '#EF4444', '#4F46E5', '#F59E0B', '#8B5CF6', '#EC4899', '#14B8A6', '#F97316', '#3B82F6', '#6366F1']
+const PRESET_ICONS = ['🍔', '🚗', '🏠', '💊', '🎮', '📚', '👔', '✈️', '🐾', '💼', '💻', '📈', '🎵', '⚽', '💡']
 
 interface TransactionModalProps {
   isOpen: boolean
@@ -14,6 +18,7 @@ interface TransactionModalProps {
   accounts: Account[]
   cards: CreditCard[]
   initialData?: Transaction | null
+  onCreateCategory?: (data: Omit<Category, 'id' | 'created_at'>) => Promise<Category>
 }
 
 export interface TransactionFormData {
@@ -39,6 +44,7 @@ export function TransactionModal({
   accounts,
   cards,
   initialData,
+  onCreateCategory,
 }: TransactionModalProps) {
   const [type, setType] = useState<'income' | 'expense'>('expense')
   const [description, setDescription] = useState('')
@@ -54,6 +60,12 @@ export function TransactionModal({
   const [deleting, setDeleting] = useState(false)
   const [confirmScopeAction, setConfirmScopeAction] = useState<'edit' | 'delete' | null>(null)
 
+  const [showNewCategoryForm, setShowNewCategoryForm] = useState(false)
+  const [newCatName, setNewCatName] = useState('')
+  const [newCatColor, setNewCatColor] = useState(PRESET_COLORS[0])
+  const [newCatIcon, setNewCatIcon] = useState('🍔')
+  const [savingCategory, setSavingCategory] = useState(false)
+
   // Initialize form when modal opens or initialData changes
   useEffect(() => {
     if (isOpen) {
@@ -62,7 +74,7 @@ export function TransactionModal({
         setDescription(initialData.description)
         setAmount(initialData.amount.toString())
         setDate(initialData.date)
-        setCategoryId(initialData.category_id)
+        setCategoryId(initialData.category_id || '')
         if (initialData.card_id) {
           setSourceId(`card:${initialData.card_id}`)
         } else if (initialData.account_id) {
@@ -84,6 +96,8 @@ export function TransactionModal({
         setIsValuePerInstallment(false)
       }
       setConfirmScopeAction(null)
+      setShowNewCategoryForm(false)
+      setNewCatName('')
     }
   }, [isOpen, initialData])
 
@@ -152,9 +166,77 @@ export function TransactionModal({
     }
   }
 
+  const handleCreateCategory = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!newCatName.trim() || !onCreateCategory) return
+    setSavingCategory(true)
+    try {
+      const newCat = await onCreateCategory({ name: newCatName.trim(), color: newCatColor, icon: newCatIcon, type })
+      setCategoryId(newCat.id)
+      setShowNewCategoryForm(false)
+      setNewCatName('')
+    } catch (err: any) {
+      console.error('Erro ao salvar categoria:', err)
+      alert(`Erro ao criar categoria: ${err?.message || 'Erro desconhecido'}`)
+    } finally {
+      setSavingCategory(false)
+    }
+  }
+
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={confirmScopeAction ? "Aplicar em quais parcelas?" : (initialData ? "Editar Transação" : "Nova Transação")}>
-      {confirmScopeAction ? (
+    <Modal isOpen={isOpen} onClose={onClose} title={showNewCategoryForm ? "Nova Categoria" : (confirmScopeAction ? "Aplicar em quais parcelas?" : (initialData ? "Editar Transação" : "Nova Transação"))}>
+      {showNewCategoryForm ? (
+        <form onSubmit={handleCreateCategory}>
+          <div className="form-group">
+            <label className="form-label">Nome</label>
+            <input className="form-input" placeholder="Ex: Alimentação" value={newCatName} onChange={(e) => setNewCatName(e.target.value)} required />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Ícone</label>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              {PRESET_ICONS.map((ic) => (
+                <button
+                  key={ic}
+                  type="button"
+                  onClick={() => setNewCatIcon(ic)}
+                  style={{
+                    width: 40, height: 40, borderRadius: 'var(--radius-md)', fontSize: 20,
+                    border: newCatIcon === ic ? '2px solid var(--color-accent)' : '1.5px solid var(--color-border)',
+                    background: newCatIcon === ic ? 'var(--color-accent-light)' : 'transparent',
+                    cursor: 'pointer',
+                  }}
+                >
+                  {ic}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="form-group">
+            <label className="form-label">Cor</label>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              {PRESET_COLORS.map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  onClick={() => setNewCatColor(c)}
+                  style={{
+                    width: 32, height: 32, borderRadius: '50%', background: c,
+                    border: newCatColor === c ? '3px solid var(--color-accent)' : '2px solid transparent',
+                    outline: newCatColor === c ? '2px solid var(--color-accent-light)' : 'none',
+                    cursor: 'pointer',
+                  }}
+                />
+              ))}
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
+            <button type="button" className="btn btn-secondary btn-full" onClick={() => setShowNewCategoryForm(false)}>Voltar</button>
+            <button type="submit" className="btn btn-primary btn-full" disabled={savingCategory}>
+              {savingCategory ? <><span className="spinner" /> Salvando...</> : 'Criar Categoria'}
+            </button>
+          </div>
+        </form>
+      ) : confirmScopeAction ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <p style={{ fontSize: 14, color: 'var(--color-text-secondary)', marginBottom: 8, textAlign: 'center' }}>
             Esta transação faz parte de uma compra parcelada ou recorrente.
@@ -285,19 +367,37 @@ export function TransactionModal({
 
         <div className="form-group">
           <label className="form-label" htmlFor="tx-category">Categoria <span style={{ color: 'var(--color-text-muted)', fontWeight: 400 }}>(opcional)</span></label>
-          <select
-            id="tx-category"
-            className="form-select"
-            value={categoryId}
-            onChange={(e) => setCategoryId(e.target.value)}
-          >
-            <option value="">Selecione uma categoria</option>
-            {filteredCats.map((cat) => (
-              <option key={cat.id} value={cat.id}>
-                {cat.icon} {cat.name}
-              </option>
-            ))}
-          </select>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <select
+              id="tx-category"
+              className="form-select"
+              value={categoryId}
+              onChange={(e) => setCategoryId(e.target.value)}
+              style={{ flex: 1 }}
+            >
+              <option value="">Selecione uma categoria</option>
+              {filteredCats.map((cat) => (
+                <option key={cat.id} value={cat.id}>
+                  {cat.icon} {cat.name}
+                </option>
+              ))}
+            </select>
+            {onCreateCategory && (
+              <button
+                type="button"
+                className="btn btn-secondary btn-icon"
+                onClick={() => {
+                  setNewCatIcon('🍔')
+                  setNewCatColor(PRESET_COLORS[0])
+                  setShowNewCategoryForm(true)
+                }}
+                style={{ width: 44, height: 44, flexShrink: 0 }}
+                title="Nova Categoria"
+              >
+                <Plus size={20} />
+              </button>
+            )}
+          </div>
         </div>
 
         {(accounts.length > 0 || cards.length > 0) && (
