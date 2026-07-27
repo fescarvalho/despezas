@@ -38,6 +38,7 @@ export function LineChart({ year, cards }: LineChartProps) {
         const { data: txs, error } = await supabase
           .from('transactions')
           .select('*, invoice:invoices(*)')
+          .is('deleted_at', null)
           .gte('date', fetchStart)
           .lte('date', endDateStr)
           .eq('type', 'expense')

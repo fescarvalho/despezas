@@ -32,6 +32,7 @@ export function SyncBalanceButton({ accounts, onSynced }: SyncBalanceButtonProps
         const { data: txs, error } = await supabase
           .from('transactions')
           .select('amount, type')
+          .is('deleted_at', null)
           .eq('account_id', acc.id)
 
         if (error) {

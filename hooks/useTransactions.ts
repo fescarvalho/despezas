@@ -46,6 +46,7 @@ export function useTransactions(monthYear: MonthYear, search = '', typeFilter: s
       let query = supabase
         .from('transactions')
         .select('*, category:categories(*), account:accounts(*), invoice:invoices(*, credit_card:credit_cards(*))')
+        .is('deleted_at', null)
         .gte('date', fetchStart)
         .lte('date', endDateStr)
         .order('date', { ascending: false })
@@ -246,7 +247,7 @@ export function useTransactions(monthYear: MonthYear, search = '', typeFilter: s
 
   const deleteTransaction = async (id: string, scope: 'single' | 'future' | 'all' = 'single', originalTx?: Transaction) => {
     if (scope === 'single' || !originalTx?.created_at) {
-      const { error: err } = await supabase.from('transactions').delete().eq('id', id)
+      const { error: err } = await supabase.from('transactions').update({ deleted_at: new Date().toISOString() }).eq('id', id)
       if (err) {
         console.error('Supabase delete failed:', err)
         throw err
@@ -255,7 +256,7 @@ export function useTransactions(monthYear: MonthYear, search = '', typeFilter: s
       return
     }
 
-    let query = supabase.from('transactions').delete().eq('created_at', originalTx.created_at)
+    let query = supabase.from('transactions').update({ deleted_at: new Date().toISOString() }).eq('created_at', originalTx.created_at)
     if (scope === 'future') {
       query = query.gte('date', originalTx.date)
     }
@@ -304,7 +305,7 @@ export function useTransactions(monthYear: MonthYear, search = '', typeFilter: s
     }
 
     // Bulk update: fetch matching transactions
-    let query = supabase.from('transactions').select('*').eq('created_at', originalTx.created_at)
+    let query = supabase.from('transactions').select('*').eq('created_at', originalTx.created_at).is('deleted_at', null)
     if (scope === 'future') {
       query = query.gte('date', originalTx.date)
     }

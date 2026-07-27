@@ -28,6 +28,7 @@ export function useInvoiceTransactions(cardId: string | undefined, closingDay: n
       const { data, error: err } = await supabase
         .from('transactions')
         .select('*, category:categories(*), account:accounts(*), invoice:invoices(*, credit_card:credit_cards(*))')
+        .is('deleted_at', null)
         .eq('card_id', cardId)
         .gte('date', startDate)
         .lte('date', endDate)

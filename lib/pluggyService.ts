@@ -94,9 +94,10 @@ export async function fetchPluggyLoans(itemId: string) {
  * Passo 3: Buscar Transações
  * Usa o token para buscar as transações da sua conta conectada.
  * @param accountId - O ID da sua conta no Pluggy
+ * @param from - Data de início opcional (YYYY-MM-DD)
  */
 
-export async function fetchPluggyTransactions(accountId: string) {
+export async function fetchPluggyTransactions(accountId: string, from?: string) {
   const token = await getPluggyToken();
   
   if (!token) {
@@ -104,7 +105,11 @@ export async function fetchPluggyTransactions(accountId: string) {
   }
 
   try {
-    const response = await fetch(`${PLUGGY_API_URL}/v2/transactions?accountId=${accountId}`, {
+    const url = from
+      ? `${PLUGGY_API_URL}/v2/transactions?accountId=${accountId}&from=${from}`
+      : `${PLUGGY_API_URL}/v2/transactions?accountId=${accountId}`;
+
+    const response = await fetch(url, {
       method: 'GET',
       headers: {
         'X-API-KEY': token, // Passamos o token no header

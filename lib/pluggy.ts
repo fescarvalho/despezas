@@ -161,10 +161,27 @@ export async function syncWithPluggy(itemId: string): Promise<{ synced: number; 
     // 3. Fetch transactions for each account and upsert
     let synced = 0
     for (const acc of accounts) {
-      const transactions = await fetchPluggyTransactions(acc.id)
+      const isCredit = acc.type === 'CREDIT'
+      
+      const column = isCredit ? 'card_id' : 'account_id'
+      const { data: latestTx } = await supabase
+        .from('transactions')
+        .select('date')
+        .eq(column, acc.id)
+        .order('date', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      let fromDate = latestTx?.date
+      if (fromDate) {
+         const fd = new Date(fromDate)
+         fd.setDate(fd.getDate() - 3)
+         fromDate = fd.toISOString().split('T')[0]
+      }
+
+      const transactions = await fetchPluggyTransactions(acc.id, fromDate)
       
       for (const tx of transactions) {
-        const isCredit = acc.type === 'CREDIT'
         
         // O app tem foco apenas em despesas. Ignoramos entradas financeiras (CREDIT) em contas bancárias.
         if (!isCredit && tx.type === 'CREDIT') {
@@ -211,7 +228,7 @@ export async function syncWithPluggy(itemId: string): Promise<{ synced: number; 
             is_installment: false,
             category_id: localCategoryId,
           },
-          { onConflict: 'id' }
+          { onConflict: 'id', ignoreDuplicates: true }
         )
         if (!error) synced++
         else console.warn('Error upserting transaction:', error.message)
